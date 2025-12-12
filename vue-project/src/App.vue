@@ -6,7 +6,13 @@
       @logout="handleLogout"
     />
 
-    <!-- ② 還沒登入／註冊／忘記密碼時的頁面 -->
+    <!-- ② 房東登入後的頁面 -->
+    <LandlordHome
+      v-else-if="currentView === 'landlordHome'"
+      @logout="handleLogout"
+    />
+
+    <!-- ③ 還沒登入／註冊／忘記密碼時的頁面 -->
     <div v-else class="page">
       <!-- 登入頁 -->
       <div class="login-card" v-if="currentView === 'login'">
@@ -32,6 +38,16 @@
               type="password"
               placeholder="請輸入密碼"
             />
+          </div>
+
+          <!-- 身分選擇 -->
+          <div class="form-group">
+            <label for="role">身分</label>
+            <select id="role" v-model="loginRole">
+              <option value="">請選擇身分</option>
+              <option value="tenant">租客</option>
+              <option value="landlord">房東</option>
+            </select>
           </div>
 
           <!-- 登入按鈕 -->
@@ -61,7 +77,7 @@
         @back-login="backToLogin"
       />
 
-      <!-- 身分選擇頁 -->
+      <!-- 身分選擇頁（註冊用） -->
       <RegChoose
         v-else-if="currentView === 'roleSelect'"
         @select-role="handleRoleSelect"
@@ -86,11 +102,14 @@ import RegChoose from './components/RegChoose.vue'
 import RegisterForm from './components/RegisterForm.vue'
 import ForgotPassword from './components/ForgotPassword.vue'
 import TenantHome from './components/TenantHome.vue'
+import LandlordHome from './components/LandlordHome.vue'
 
-const currentView = ref('login')
+const currentView = ref('login')   // login / forgotPassword / roleSelect / register / tenantHome / landlordHome
 const selectedRole = ref('')
+
 const username = ref('')
 const password = ref('')
+const loginRole = ref('')          // ✨ 登入時選擇的身分（tenant / landlord）
 
 // 登入
 const handleLogin = () => {
@@ -98,8 +117,18 @@ const handleLogin = () => {
     alert('請輸入帳號與密碼')
     return
   }
-  
-  currentView.value = 'tenantHome'
+
+  if (!loginRole.value) {
+    alert('請先選擇身分（租客或房東）')
+    return
+  }
+
+  // 之後可以在這裡加「呼叫後端 API 驗證」
+  if (loginRole.value === 'tenant') {
+    currentView.value = 'tenantHome'
+  } else if (loginRole.value === 'landlord') {
+    currentView.value = 'landlordHome'
+  }
 }
 
 // 忘記密碼
@@ -107,34 +136,34 @@ const handleForgotPassword = () => {
   currentView.value = 'forgotPassword'
 }
 
-// 從登入頁 → 身分選擇頁
+// 從登入頁 → 註冊身分選擇頁
 const goToRoleSelect = () => {
   currentView.value = 'roleSelect'
 }
 
-// 在 RegChoose 裡選擇身分後
+// 在 RegChoose 裡選擇註冊身分後
 const handleRoleSelect = (role) => {
   selectedRole.value = role
   currentView.value = 'register'
 }
 
-  // 回登入頁
-const backToLogin = () =>{
+// 回登入頁
+const backToLogin = () => {
   currentView.value = 'login'
 }
 
 // 註冊完成
 const handleRegistered = (payload) => {
   console.log('註冊完成資料：', payload)
-  alert('註冊完成！')
+  alert('註冊完成！請重新登入～')
   currentView.value = 'login'
 }
 
-// 登出（從租客首頁按右上角「登出」會呼叫這個）
+// 從首頁登出（租客 / 房東都會用這個）
 const handleLogout = () => {
-  if (!confirm('確定要登出嗎？')) return
   username.value = ''
   password.value = ''
+  loginRole.value = ''
   currentView.value = 'login'
 }
 </script>
@@ -155,7 +184,7 @@ const handleLogout = () => {
   display: flex;
   justify-content: center;
   align-items: center;
-  background: #f3f4f6;
+  background: #f2e6dc;
   font-family: "Iansui", sans-serif;
 }
 
@@ -194,7 +223,8 @@ label {
   font-family: "Iansui", sans-serif;
 }
 
-input {
+input,
+select {
   padding: 8px 10px;
   border-radius: 8px;
   border: 1px solid #d1d5db;
@@ -203,9 +233,10 @@ input {
   font-family: "Iansui", sans-serif;
 }
 
-input:focus {
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.3);
+input:focus,
+select:focus {
+  border-color: #a18c7b;
+  box-shadow: 0 0 0 1px rgba(161, 140, 123, 0.4);
 }
 
 .btn-primary {
@@ -240,7 +271,7 @@ input:focus {
   border: none;
   background: none;
   padding: 0;
-  color: #2563eb;
+  color: #4a2c21;
   cursor: pointer;
   font-family: "Iansui", sans-serif;
 }
