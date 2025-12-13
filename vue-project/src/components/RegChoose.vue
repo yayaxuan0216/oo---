@@ -1,42 +1,56 @@
 <template>
-  <div class="login-card">
-    <h1 class="title">選擇身分</h1>
-    <p class="helper-text">請選擇你要註冊的身分</p>
+  <div class="page">
+    <div class="login-card">
+      <h1 class="title">選擇身分</h1>
+      <p class="helper-text">請選擇你要註冊的身分</p>
 
-    <div class="role-options">
-      <button class="role-btn tenant" @click="emitSelect('tenant')">
-        我是租客 👩‍💼
-      </button>
-      <button class="role-btn landlord" @click="emitSelect('landlord')">
-        我是房東 👩‍💼
+      <div class="role-options">
+        <button class="role-btn tenant" @click="handleSelect('tenant')">
+          我是租客 👩‍💼
+        </button>
+        <button class="role-btn landlord" @click="handleSelect('landlord')">
+          我是房東 🏠
+        </button>
+      </div>
+
+      <button class="link-btn back-link" type="button" @click="backToLogin">
+        ← 回到登入頁
       </button>
     </div>
-
-    <button class="link-btn back-link" type="button" @click="$emit('back')">
-      ← 回到登入頁
-    </button>
   </div>
 </template>
 
 <script setup>
-const emit = defineEmits(['select-role', 'back'])
+import { useRouter } from 'vue-router'
 
-const emitSelect = (role) => {
-  emit('select-role', role)
+const router = useRouter()
+
+// 處理身分選擇
+const handleSelect = (role) => {
+  // ✨ 重點：跳轉到註冊頁 (/Register)，並透過網址傳遞身分參數
+  // 網址會變成： .../Register?role=tenant
+  router.push({
+    path: '/Register', 
+    query: { role: role } 
+  })
+}
+
+// 回登入頁
+const backToLogin = () => {
+  router.push('/Login')
 }
 </script>
 
-<style>
-@font-face {
-  font-family: "Iansui";
-  src: url("/src/assets/fonts/Iansui-Regular.woff2") format("woff2"),
-       url("/src/assets/fonts/Iansui-Regular.woff") format("woff");
-  font-weight: normal;
-  font-style: normal;
-}
-</style>
-
 <style scoped>
+/* 4. 補上 page 樣式讓畫面置中 */
+.page {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: #f2e6dc; 
+}
+
 .login-card {
   width: 360px;
   padding: 24px 28px 28px;
@@ -51,6 +65,7 @@ const emitSelect = (role) => {
   font-size: 30px;
   font-weight: 600;
   color: #2e2622;
+  font-family: "Iansui", sans-serif; /* 確保字體統一 */
 }
 
 .helper-text {
@@ -58,6 +73,7 @@ const emitSelect = (role) => {
   font-size: 15px;
   color: #6b7280;
   margin-bottom: 16px;
+  font-family: "Iansui", sans-serif;
 }
 
 .role-options {
@@ -77,7 +93,7 @@ const emitSelect = (role) => {
   border: 3px solid #ffffff;     
   border-radius: 20px;          
   background: #fff9f2;           
-  color: #5c4a3e;              
+  color: #5c4a3e;               
 
   cursor: pointer;
   transition: 0.2s ease;
@@ -107,13 +123,18 @@ const emitSelect = (role) => {
   box-shadow: 0 6px 14px rgba(0,0,0,0.12);
 }
 
+.back-link {
+  /* 讓按鈕置中 */
+  display: block; 
+  margin: 16px auto 0;
+}
+
 .link-btn {
   border: none;
   background: none;
   padding: 0;
-  color: #2563eb;
+  color: #4a2c21; /* 改成深咖啡色比較搭 */
   cursor: pointer;
-  margin-top: 12px;
   font-size: 13px;
   font-family: "Iansui", sans-serif;
 }

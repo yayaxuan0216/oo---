@@ -1,165 +1,155 @@
 <template>
-  <div class="register-card">
-    <!-- 標題 -->
-    <h1 class="title">
-      {{ role === 'landlord' ? '房東註冊' : '租客註冊' }}
-    </h1>
+  <div class="page">
+    <div class="register-card">
+      <h1 class="title">
+        {{ role === 'landlord' ? '房東註冊' : '租客註冊' }}
+      </h1>
 
-    <!-- 步驟提示 -->
-    <p class="step-text" v-if="currentStep === 'form'">
-      步驟 1：請先填寫基本資料
-    </p>
-    <p class="step-text" v-else>
-      步驟 2：手機簡訊驗證
-    </p>
-
-    <!-- ーーーー Step 1：填資料 ーーーー -->
-    <form
-      v-if="currentStep === 'form'"
-      class="form"
-      @submit.prevent="handleSubmitForm"
-    >
-      <!-- 姓名 -->
-      <div class="form-group">
-        <label for="name">姓名</label>
-        <input
-          id="name"
-          v-model="form.name"
-          type="text"
-          placeholder="請輸入姓名"
-        />
-      </div>
-
-      <!-- 電話 -->
-      <div class="form-group">
-        <label for="phone">手機號碼</label>
-        <input
-          id="phone"
-          v-model="form.phone"
-          type="tel"
-          placeholder="例如：0912345678"
-        />
-      </div>
-
-      <!-- 地址 -->
-      <div class="form-group">
-        <label for="address">地址</label>
-        <input
-          id="address"
-          v-model="form.address"
-          type="text"
-          placeholder="請輸入住址"
-        />
-      </div>
-
-      <!-- 性別 -->
-      <div class="form-group">
-        <label for="gender">性別</label>
-        <select id="gender" v-model="form.gender">
-          <option value="">請選擇性別</option>
-          <option value="female">女</option>
-          <option value="male">男</option>
-          <option value="other">其他 / 不方便透露</option>
-        </select>
-      </div>
-
-      <!-- 上傳證件 -->
-      <div class="form-group">
-        <label for="idImage">
-          {{ role === 'landlord' ? '身分證照片（示意）' : '學生證 / 身分證照片（示意）' }}
-        </label>
-        <input
-          id="idImage"
-          type="file"
-          accept="image/*"
-          @change="handleFileChange"
-        />
-        <p class="hint">
-          ＊正式系統可用來做身分驗證，現在先示意即可。
-        </p>
-      </div>
-
-      <!-- 密碼 -->
-      <div class="form-group">
-        <label for="password">密碼</label>
-        <input
-          id="password"
-          v-model="form.password"
-          type="password"
-          placeholder="請輸入密碼"
-        />
-      </div>
-
-      <!-- 密碼確認 -->
-      <div class="form-group">
-        <label for="confirmPassword">確認密碼</label>
-        <input
-          id="confirmPassword"
-          v-model="form.confirmPassword"
-          type="password"
-          placeholder="請再次輸入密碼"
-        />
-      </div>
-
-      <!-- 按鈕列 -->
-      <div class="button-row">
-        <button
-          type="button"
-          class="secondary-btn"
-          @click="$emit('back')"
-        >
-          ← 回上一步（選擇身分）
-        </button>
-
-        <button type="submit" class="btn-primary">
-          下一步：手機驗證
-        </button>
-      </div>
-    </form>
-
-    <!-- ーーーー Step 2：輸入簡訊驗證碼 ーーーー -->
-    <div v-else class="verify-step">
-      <p class="verify-text">
-        我們已傳送驗證碼到您的手機：
-        <span class="phone-highlight">{{ maskedPhone }}</span><br />
-        請輸入簡訊中的 6 位數驗證碼（本範例不會真的發簡訊，只做流程示意）。
+      <p class="step-text" v-if="currentStep === 'form'">
+        步驟 1：請先填寫基本資料
+      </p>
+      <p class="step-text" v-else>
+        步驟 2：手機簡訊驗證
       </p>
 
-      <div class="form-group">
-        <label for="code">簡訊驗證碼</label>
-        <input
-          id="code"
-          v-model="verificationCode"
-          type="text"
-          maxlength="6"
-          placeholder="請輸入 6 位數驗證碼"
-        />
-      </div>
+      <form
+        v-if="currentStep === 'form'"
+        class="form"
+        @submit.prevent="handleSubmitForm"
+      >
+        <div class="form-group">
+          <label for="name">姓名</label>
+          <input
+            id="name"
+            v-model="form.name"
+            type="text"
+            placeholder="請輸入姓名"
+          />
+        </div>
 
-      <div class="verify-buttons">
-        <button
-          type="button"
-          class="secondary-btn"
-          @click="backToEditForm"
-        >
-          ← 返回修改資料
-        </button>
+        <div class="form-group">
+          <label for="phone">手機號碼</label>
+          <input
+            id="phone"
+            v-model="form.phone"
+            type="tel"
+            placeholder="例如：0912345678"
+          />
+        </div>
 
-        <button
-          type="button"
-          class="secondary-btn"
-          @click="resendCode"
-        >
-          重新寄送驗證碼
-        </button>
+        <div class="form-group">
+          <label for="address">地址</label>
+          <input
+            id="address"
+            v-model="form.address"
+            type="text"
+            placeholder="請輸入住址"
+          />
+        </div>
 
-        <button
-          type="button"
-          class="btn-primary"
-          @click="handleVerifyCode"
-        >
-          完成註冊
-        </button>
+        <div class="form-group">
+          <label for="gender">性別</label>
+          <select id="gender" v-model="form.gender">
+            <option value="">請選擇性別</option>
+            <option value="female">女</option>
+            <option value="male">男</option>
+            <option value="other">其他 / 不方便透露</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="idImage">
+            {{ role === 'landlord' ? '身分證照片（示意）' : '學生證 / 身分證照片（示意）' }}
+          </label>
+          <input
+            id="idImage"
+            type="file"
+            accept="image/*"
+            @change="handleFileChange"
+          />
+          <p class="hint">
+            ＊正式系統可用來做身分驗證，現在先示意即可。
+          </p>
+        </div>
+
+        <div class="form-group">
+          <label for="password">密碼</label>
+          <input
+            id="password"
+            v-model="form.password"
+            type="password"
+            placeholder="請輸入密碼"
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="confirmPassword">確認密碼</label>
+          <input
+            id="confirmPassword"
+            v-model="form.confirmPassword"
+            type="password"
+            placeholder="請再次輸入密碼"
+          />
+        </div>
+
+        <div class="button-row">
+          <button
+            type="button"
+            class="secondary-btn"
+            @click="goBackToChoice"
+          >
+            ← 回上一步（選擇身分）
+          </button>
+
+          <button type="submit" class="btn-primary">
+            下一步：手機驗證
+          </button>
+        </div>
+      </form>
+
+      <div v-else class="verify-step">
+        <p class="verify-text">
+          我們已傳送驗證碼到您的手機：
+          <span class="phone-highlight">{{ maskedPhone }}</span><br />
+          請輸入簡訊中的 6 位數驗證碼（本範例不會真的發簡訊，只做流程示意）。
+        </p>
+
+        <div class="form-group">
+          <label for="code">簡訊驗證碼</label>
+          <input
+            id="code"
+            v-model="verificationCode"
+            type="text"
+            maxlength="6"
+            placeholder="請輸入 6 位數驗證碼"
+          />
+        </div>
+
+        <div class="verify-buttons">
+          <button
+            type="button"
+            class="secondary-btn"
+            @click="backToEditForm"
+          >
+            ← 返回修改資料
+          </button>
+
+          <button
+            type="button"
+            class="secondary-btn"
+            @click="resendCode"
+          >
+            重新寄送驗證碼
+          </button>
+
+          <button
+            type="button"
+            class="btn-primary"
+            @click="handleVerifyCode"
+          >
+            完成註冊
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -167,22 +157,17 @@
 
 <script setup>
 import { ref, computed } from 'vue'
+import { useRouter, useRoute } from 'vue-router' // 3. 引入路由工具
 
-// 從父層接收身分：租客/房東
-const props = defineProps({
-  role: {
-    type: String,
-    default: 'tenant' // tenant / landlord
-  }
-})
+const router = useRouter()
+const route = useRoute()
 
-// 回傳事件：回上一頁、回登入、註冊完成
-const emit = defineEmits(['back', 'back-login', 'registered'])
+// 4. 從網址取得 role 參數 (例如 /Register?role=landlord)
+// 如果網址沒有參數，預設給 'tenant' 避免報錯
+const role = computed(() => route.query.role || 'tenant')
 
-// 當前步驟：form（填資料） / verify（輸入驗證碼）
 const currentStep = ref('form')
 
-// 表單資料
 const form = ref({
   name: '',
   phone: '',
@@ -193,10 +178,8 @@ const form = ref({
   idImageFile: null
 })
 
-// 驗證碼
 const verificationCode = ref('')
 
-// 手機號碼遮蔽顯示（例如：0912***678）
 const maskedPhone = computed(() => {
   const p = form.value.phone || ''
   if (p.length >= 10) {
@@ -205,13 +188,17 @@ const maskedPhone = computed(() => {
   return p
 })
 
-// 上傳檔案
 const handleFileChange = (event) => {
   const file = event.target.files?.[0]
   form.value.idImageFile = file || null
 }
 
-// 步驟一：檢查表單 + 進入手機驗證頁
+// 5. 回到上一頁 (選擇身分頁)
+const goBackToChoice = () => {
+  router.push('/RegChoose')
+}
+
+// Step 1：檢查表單
 const handleSubmitForm = () => {
   if (!form.value.name || !form.value.phone || !form.value.address ||
       !form.value.gender || !form.value.password || !form.value.confirmPassword) {
@@ -219,7 +206,6 @@ const handleSubmitForm = () => {
     return
   }
 
-  // 手機簡單格式檢查（台灣常見 09 開頭 + 8 碼）
   const phonePattern = /^09\d{8}$/
   if (!phonePattern.test(form.value.phone)) {
     alert('請輸入正確的手機號碼，例如：0912345678')
@@ -231,56 +217,50 @@ const handleSubmitForm = () => {
     return
   }
 
-  // 這裡正式系統會呼叫後端發簡訊
   alert('已發送驗證碼到您的手機（示意）')
-
   currentStep.value = 'verify'
 }
 
-// 按「重新寄送驗證碼」
 const resendCode = () => {
   alert('已重新寄送驗證碼到您的手機（示意）')
 }
 
-// 從驗證碼頁回去修改資料
 const backToEditForm = () => {
   currentStep.value = 'form'
 }
 
-// 步驟二：檢查驗證碼 + 發出 registered 事件
+// Step 2：驗證碼與完成註冊
 const handleVerifyCode = () => {
   if (!verificationCode.value) {
     alert('請先輸入簡訊驗證碼')
     return
   }
 
-  // 這裡只是示意：限制為 6 位數字，實際上應該要去後端驗證
   const codePattern = /^\d{6}$/
   if (!codePattern.test(verificationCode.value)) {
     alert('驗證碼格式錯誤，請輸入 6 位數字')
     return
   }
 
-  // 驗證成功（示意）
-  alert('手機驗證成功，註冊完成！')
-
-  // 把註冊資料傳回父元件（App.vue）
-  emit('registered', {
-    role: props.role,
-    name: form.value.name,
-    phone: form.value.phone,
-    address: form.value.address,
-    gender: form.value.gender,
-    // 實際專案不應回傳明碼密碼，這裡純作作業示範
-    password: form.value.password,
-    phoneVerified: true
-  })
-
-  // 父層的 handleRegistered 會負責切回登入頁
+  // 6. 註冊成功，跳轉回登入頁
+  alert('手機驗證成功，註冊完成！請重新登入。')
+  
+  // 可以在這裡呼叫後端 API 送出資料...
+  
+  router.push('/Login')
 }
 </script>
 
 <style scoped>
+/* 7. 補上 page 樣式 */
+.page {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: #f2e6dc; 
+}
+
 .register-card {
   width: 420px;
   padding: 24px 28px 28px;

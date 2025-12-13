@@ -1,42 +1,45 @@
 <template>
-  <div class="login-card">
-    <h1 class="title">忘記密碼</h1>
-    <p class="helper-text">
-      請輸入您註冊時的 Email，我們會寄送重設密碼的連結給您。
-    </p>
+  <div class="page">
+    <div class="login-card">
+      <h1 class="title">忘記密碼</h1>
+      <p class="helper-text">
+        請輸入您註冊時的 Email，我們會寄送重設密碼的連結給您。
+      </p>
 
-    <form class="form" @submit.prevent="handleSubmit">
-      <div class="form-group">
-        <label for="email">Email</label>
-        <input
-          id="email"
-          v-model="email"
-          type="email"
-          placeholder="請輸入您的 Email"
-        />
+      <form class="form" @submit.prevent="handleSubmit">
+        <div class="form-group">
+          <label for="email">Email</label>
+          <input
+            id="email"
+            v-model="email"
+            type="email"
+            placeholder="請輸入您的 Email"
+          />
+        </div>
+
+        <button type="submit" class="btn-primary">
+          送出重設密碼請求
+        </button>
+      </form>
+
+      <div class="bottom-links">
+        <button class="link-btn" type="button" @click="backToLogin">
+          ← 回到登入頁
+        </button>
       </div>
-
-      <button type="submit" class="btn-primary">
-        送出重設密碼請求
-      </button>
-    </form>
-
-    <div class="bottom-links">
-      <button class="link-btn" type="button" @click="$emit('back-login')">
-        ← 回到登入頁
-      </button>
     </div>
   </div>
 </template>
 
 <script setup>
 import { ref } from 'vue'
+import { useRouter } from 'vue-router' // 3. 引入 useRouter
 
+const router = useRouter() // 4. 建立 router 實例
 const email = ref('')
 
-const emit = defineEmits(['back-login'])
+// 移除了原本的 emit = defineEmits(['back-login'])
 
-// 簡單的 Email 格式檢查（避免亂打）
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 const handleSubmit = () => {
@@ -50,15 +53,30 @@ const handleSubmit = () => {
     return
   }
 
-  // 這裡之後可以改成呼叫後端 API 寄出重設信
+  // 模擬寄信成功
   alert(`已收到重設密碼請求：\nEmail：${email.value}\n（目前為模擬動作）`)
 
-  // 送出後回登入頁
-  emit('back-login')
+  // 5. 送出成功後，跳轉回登入頁
+  router.push('/Login')
+}
+
+// 6. 點擊「回到登入頁」的跳轉邏輯
+const backToLogin = () => {
+  router.push('/Login')
 }
 </script>
 
 <style scoped>
+/* 7. 補上 page 的樣式，讓畫面置中 (跟 Login.vue 一樣) */
+.page {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  /* 如果 body 已經有背景色，這裡可以省略，或保留確保樣式獨立 */
+  background: #f2e6dc; 
+}
+
 .login-card {
   width: 360px;
   padding: 24px 28px 28px;
@@ -107,6 +125,7 @@ input {
   font-size: 14px;
   outline: none;
   font-family: "Iansui", sans-serif;
+  background-color: white; /* 確保輸入框背景是白的 */
 }
 
 input:focus {
