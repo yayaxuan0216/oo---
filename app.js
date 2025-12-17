@@ -17,7 +17,7 @@ async function testConnection() {
     try {
         // 2. 嘗試取得連線
         const connection = await pool.getConnection();
-        console.log('✅ 成功連接到 XAMPP MySQL 資料庫！');
+        console.log('成功連接到 XAMPP MySQL 資料庫！');
 
         // 3. 測試執行一個簡單的 SQL 查詢
         const [rows, fields] = await connection.execute('SELECT 1 + 1 AS solution');
