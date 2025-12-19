@@ -229,25 +229,68 @@ const backToEditForm = () => {
   currentStep.value = 'form'
 }
 
-// Step 2：驗證碼與完成註冊
-const handleVerifyCode = () => {
+const registerToBackend = async () => {
+  try {
+    // 1. 準備要傳給後端的資料 (JSON 格式)
+    // 注意：目前後端只收 JSON，圖片上傳通常需要另外處理 (例如用 FormData)，
+    // 這裡我們先只傳文字資料，確保資料庫能寫入成功。
+    const payload = {
+      role: role.value, // 'tenant' or 'landlord'
+      name: form.value.name,
+      phone: form.value.phone,
+      address: form.value.address,
+      gender: form.value.gender,
+      password: form.value.password // 再次提醒：正式上線前建議後端要做加密
+    }
+
+    // 2. 發送 POST 請求給 Node.js 後端 (Port 3000)
+    const response = await fetch('http://localhost:3000/api/register', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(payload)
+    })
+
+    const data = await response.json()
+
+    if (data.success) {
+      // 3. 成功：跳轉回登入頁
+      alert(`🎉 註冊成功！\n身分：${role.value === 'landlord' ? '房東' : '租客'}\n請重新登入。`)
+      router.push('/Login')
+    } else {
+      // 4. 失敗 (例如欄位缺漏)
+      alert('註冊失敗：' + data.message)
+    }
+
+  } catch (error) {
+    console.error('API Error:', error)
+    alert('無法連線到伺服器，請確認後端 (backend) 是否已啟動？')
+  }
+}
+
+
+
+
+// ✅ 正確寫法：把呼叫後端的邏輯接上去
+
+const handleVerifyCode = async () => {
+  // 1. 檢查驗證碼有沒有填
   if (!verificationCode.value) {
     alert('請先輸入簡訊驗證碼')
     return
   }
 
+  // 2. 檢查格式 (6位數字)
   const codePattern = /^\d{6}$/
   if (!codePattern.test(verificationCode.value)) {
     alert('驗證碼格式錯誤，請輸入 6 位數字')
     return
   }
 
-  // 6. 註冊成功，跳轉回登入頁
-  alert('手機驗證成功，註冊完成！請重新登入。')
-  
-  // 可以在這裡呼叫後端 API 送出資料...
-  
-  router.push('/Login')
+  // 3. 驗證通過，正式呼叫後端 API
+  // ✨ 這行是關鍵！一定要加 await
+  await registerToBackend()
 }
 </script>
 
