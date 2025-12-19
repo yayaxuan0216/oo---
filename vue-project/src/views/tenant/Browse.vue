@@ -3,7 +3,6 @@
     <button class="mobile-filter-toggle" @click="isFilterOpen = !isFilterOpen">
       {{ isFilterOpen ? '▲ 收起篩選條件' : '▼ 開啟篩選條件' }}
     </button>
-
     <section class="filters" :class="{ 'mobile-hidden': !isFilterOpen }">
       <h2 class="section-title">條件篩選</h2>
 
@@ -63,27 +62,39 @@
       
       <div class="listing-grid">
         <article v-for="house in filteredListings" :key="house.id" class="listing-card">
-          <div class="listing-header">
-            <h3 class="listing-title">{{ house.title }}</h3>
-            <button class="favorite-btn" :class="{ active: isFavorite(house.id) }" @click="toggleFavorite(house.id)">
+          <!-- ✅ 照片 -->
+          <div class="photo-box">
+            <img :src="house.photo" :alt="house.title" />
+            <button
+              class="favorite-float"
+              :class="{ active: isFavorite(house.id) }"
+              @click="toggleFavorite(house.id)"
+              type="button"
+            >
               {{ isFavorite(house.id) ? '♥' : '♡' }}
             </button>
-          </div>
 
-          <p class="listing-price">{{ house.price.toLocaleString() }} 元/月</p>
-          <p class="listing-meta">
-            {{ house.area }} · {{ house.roomType }} · 約 {{ house.distance }} 分
-          </p>
+    <div class="price-badge">{{ house.price.toLocaleString() }} 元/月</div>
+  </div>
 
-          <div class="tags">
-            <span v-for="tag in house.tags" :key="tag" class="tag">{{ tag }}</span>
-          </div>
+  <!-- ✅ 內容 -->
+  <div class="card-body">
+    <h3 class="listing-title">{{ house.title }}</h3>
 
-          <div class="listing-footer">
-            <button class="secondary-btn" @click="showDetail(house)">詳情</button>
-            <button class="primary-outline-btn" @click="contactLandlord(house)">聯絡</button>
-          </div>
-        </article>
+    <p class="listing-meta">
+      {{ house.area }} · {{ house.roomType }} · 約 {{ house.distance }} 分
+    </p>
+
+    <div class="tags">
+      <span v-for="tag in house.tags" :key="tag" class="tag">{{ tag }}</span>
+    </div>
+
+    <div class="listing-footer">
+      <button class="secondary-btn" @click="showDetail(house)">詳情</button>
+      <button class="primary-outline-btn" @click="contactLandlord(house)">聯絡</button>
+    </div>
+  </div>
+</article>
       </div>
     </section>
   </div>
@@ -93,21 +104,38 @@
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 
+import room1 from '@/assets/rooms/room1.jpg'
+import room2 from '@/assets/rooms/room2.jpg'
+import room3 from '@/assets/rooms/room3.jpg'
+import room4 from '@/assets/rooms/room4.jpg'
+
+const router = useRouter()
+
 // ✨ 控制手機版篩選區是否展開 (預設 false 收起)
 const isFilterOpen = ref(false)
-const router = useRouter()
-// ... (以下資料和邏輯保持不變，不用動) ...
+
+// ✅ 只有一份 listings（包含 photo）
 const listings = ref([
-  { id: 1, title: '雲科大旁溫馨雅房', area: '雲科大周邊', price: 5500, roomType: '雅房', distance: 5, tags: ['含水費', '含網路', '有冷氣'], landlordName: '王先生', landlordPhone: '0912-345-678' },
-  { id: 2, title: '斗六市區採光套房', area: '斗六市區', price: 7000, roomType: '套房', distance: 10, tags: ['獨立衛浴', '近公車站', '有洗衣機'], landlordName: '陳小姐', landlordPhone: '0987-111-222' },
-  { id: 3, title: '火車站附近電梯大樓套房', area: '火車站附近', price: 8500, roomType: '套房', distance: 8, tags: ['電梯大樓', '可機車位', '含管理費'], landlordName: '林先生', landlordPhone: '0933-222-333' },
-  { id: 4, title: '雲科大旁學生友善整層出租', area: '雲科大周邊', price: 12000, roomType: '整層', distance: 6, tags: ['適合多人合租', '可開伙', '近學餐'], landlordName: '張先生', landlordPhone: '0955-444-555' }
+  { id: 1, title: '雲科大旁溫馨雅房', area: '雲科大周邊', price: 5500, roomType: '雅房', distance: 5, tags: ['含水費', '含網路', '有冷氣'], landlordName: '王先生', landlordPhone: '0912-345-678', photo: room1 },
+  { id: 2, title: '斗六市區採光套房', area: '斗六市區', price: 7000, roomType: '套房', distance: 10, tags: ['獨立衛浴', '近公車站', '有洗衣機'], landlordName: '陳小姐', landlordPhone: '0987-111-222', photo: room2 },
+  { id: 3, title: '火車站附近電梯大樓套房', area: '火車站附近', price: 8500, roomType: '套房', distance: 8, tags: ['電梯大樓', '可機車位', '含管理費'], landlordName: '林先生', landlordPhone: '0933-222-333', photo: room3 },
+  { id: 4, title: '雲科大旁學生友善整層出租', area: '雲科大周邊', price: 12000, roomType: '整層', distance: 6, tags: ['適合多人合租', '可開伙', '近學餐'], landlordName: '張先生', landlordPhone: '0955-444-555', photo: room4 }
 ])
 
 const favoriteIds = ref(new Set())
-const filters = ref({ keyword: '', area: '', roomType: '', priceRange: '', withInternet: false, withWasher: false, withAC: false })
+
+const filters = ref({
+  keyword: '',
+  area: '',
+  roomType: '',
+  priceRange: '',
+  withInternet: false,
+  withWasher: false,
+  withAC: false
+})
 
 const isFavorite = (id) => favoriteIds.value.has(id)
+
 const toggleFavorite = (id) => {
   const set = favoriteIds.value
   if (set.has(id)) set.delete(id)
@@ -135,20 +163,41 @@ const filteredListings = computed(() => {
 })
 
 const resetFilters = () => {
-  filters.value = { keyword: '', area: '', roomType: '', priceRange: '', withInternet: false, withWasher: false, withAC: false }
+  filters.value = {
+    keyword: '',
+    area: '',
+    roomType: '',
+    priceRange: '',
+    withInternet: false,
+    withWasher: false,
+    withAC: false
+  }
 }
-const showDetail = (house) =>{
-  console.log(house.id)
-  router.push({
-    name: 'RentalDetail',
-    params: { id: house.id }
-  })
+
+const showDetail = (house) => {
+  router.push({ name: 'RentalDetail', params: { id: house.id } })
 }
+
 const contactLandlord = (house) => alert(`房東：${house.landlordName}`)
 </script>
 
 <style scoped>
 /* --- 共用樣式 --- */
+.listing-section{
+  display: flex;
+  flex-direction: column;
+  align-items: center;           /* ✅ 整段置中 */
+}
+
+.listing-section > .section-title{
+  width: min(1050px, 100%);
+}
+
+.listing-grid{
+  justify-content: center;
+  width: min(1050px, 100%);      /* ✅ 卡片區最大寬度，並置中 */
+}
+
 .browse-layout {
   display: grid;
   grid-template-columns: 270px 1fr; /* 電腦版：左側固定，右側自適應 */
@@ -179,13 +228,71 @@ const contactLandlord = (house) => alert(`房東：${house.landlordName}`)
 /* 列表區塊 */
 .listing-grid {
   display: grid;
+  justify-content: center;
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
   gap: 14px;
 }
-.listing-card { background: #fffdf9; border-radius: 12px; padding: 14px; box-shadow: 0 4px 14px rgba(46, 38, 34, 0.12); border: 1px solid rgba(242, 230, 220, 0.9); }
-.listing-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 4px; }
+
+.listing-card{
+  padding: 0;                    /* 因為照片要貼滿 */
+  overflow: hidden;
+  border-radius: 16px;
+  background: #fffdf9;
+  box-shadow: 0 4px 14px rgba(46, 38, 34, 0.12);
+  border: 2px solid #ffffff;     /* ✅ 大白邊可愛感 */
+}
+
+.photo-box{
+  position: relative;
+  height: 160px;
+  background: #eee;
+}
+
+.photo-box img{
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.card-body{
+  padding: 14px;
+}
+
+.favorite-float{
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 38px;
+  height: 38px;
+  border-radius: 999px;
+  border: 2px solid #fff;
+  background: rgba(255,255,255,0.9);
+  cursor: pointer;
+  font-size: 16px;
+  color: #a18c7b;
+}
+
+.favorite-float.active{
+  background: #4a2c21;
+  color: #f2e6dc;
+  border-color: rgba(255,255,255,0.9);
+}
+
+.price-badge{
+  position: absolute;
+  left: 10px;
+  bottom: 10px;
+  background: rgba(74,44,33,0.92);
+  color: #f2e6dc;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  border: 2px solid rgba(255,255,255,0.9);
+}
+
 .listing-title { font-size: 16px; font-weight: 600; color: #2e2622; margin: 0; }
-.listing-price { font-size: 18px; font-weight: 700; color: #a18c7b; margin: 4px 0; }
 .listing-meta { font-size: 13px; color: #6b7280; }
 .tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
 .tag { font-size: 11px; padding: 2px 8px; border-radius: 999px; background: #f2e6dc; color: #4a2c21; }
@@ -193,17 +300,15 @@ const contactLandlord = (house) => alert(`房東：${house.landlordName}`)
 .secondary-btn, .primary-outline-btn { flex: 1; padding: 6px 0; border-radius: 999px; font-size: 13px; cursor: pointer; }
 .secondary-btn { border: none; background: #e1d4c8; color: #2e2622; }
 .primary-outline-btn { border: 1px solid #a18c7b; background: transparent; color: #4a2c21; }
-.favorite-btn { border: none; background: transparent; font-size: 16px; cursor: pointer; color: #a18c7b; }
 
 /* --- 📱 手機版 RWD 設定 (寬度小於 768px 時生效) --- */
 @media (max-width: 768px) {
   .browse-layout {
-    display: flex;       /* 改成垂直排列 */
+    display: flex;
     flex-direction: column;
     gap: 10px;
   }
 
-  /* 顯示切換按鈕 */
   .mobile-filter-toggle {
     display: block;
     width: 100%;
@@ -217,29 +322,30 @@ const contactLandlord = (house) => alert(`房東：${house.landlordName}`)
     margin-bottom: 10px;
   }
 
-  /* 預設隱藏篩選區 (透過 class 控制) */
   .mobile-hidden {
     display: none;
   }
 
-  /* 篩選區展開時的樣式 */
   .filters {
-    width: 100%;       /* 滿寬 */
+    width: 100%;
     box-sizing: border-box;
   }
 
-  /* 調整列表 Grid 為一欄 */
+  /* ✅ 卡片列表：單欄 + 置中 */
   .listing-grid {
     display: grid;
-    grid-template-columns: 1fr; /* 1fr 代表佔滿剩餘空間 */
-    gap: 16px; /* 卡片之間的垂直間距 */
+    grid-template-columns: 1fr;
+    gap: 16px;
     width: 100%;
+    justify-items: center;
+    justify-content: center;   /* ✅ 每張卡片在格子內置中 */
   }
+
   .listing-card {
     width: 100%;
+    max-width: 420px;        /* ✅ 卡片最大寬度，才會看起來置中 */
     box-sizing: border-box;
-    /* 如果覺得卡片圓角太大，可以在手機版稍微修小一點 */
-    border-radius: 12px; 
+    border-radius: 12px;
   }
 }
 </style>

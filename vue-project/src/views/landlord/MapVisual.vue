@@ -55,7 +55,7 @@ const initMap = () => {
   }
 
   map.value = new window.google.maps.Map(el, {
-    center: { lat: 23.708, lng: 120.429 },
+    center: { lat: 23.7094, lng: 120.5410 },
     zoom: 14,
     mapTypeControl: true,
     mapTypeControlOptions: {

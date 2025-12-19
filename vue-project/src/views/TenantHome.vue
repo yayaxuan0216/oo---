@@ -27,6 +27,9 @@
           <router-link to="/TenantHome/browse" class="drawer-item" @click="toggleMenu">
             <span class="icon">🔍</span> 找房去
           </router-link>
+          <router-link to="/TenantHome/map" class="drawer-item" @click="toggleMenu">
+            <span class="icon">🗺️</span> 地圖找房
+          </router-link>
           <router-link to="/TenantHome/favorites" class="drawer-item" @click="toggleMenu">
             <span class="icon">❤️</span> 我的收藏
           </router-link>
