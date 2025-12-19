@@ -6,7 +6,7 @@ const router = createRouter({
     routes: [
         {
             path: '/',
-            redirect: '/TenantHome' // 開發時想直接看哪個頁面就這裡修改，環境要整個重開
+            redirect: '/LandlordHome' // 開發時想直接看哪個頁面就這裡修改，環境要整個重開
         },
         {
             path: '/Login',
