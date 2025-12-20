@@ -45,7 +45,8 @@ const login = async (req, res) => {
         id: docId,
         name: userFound.name,
         role: role,
-        phone: userFound.phone
+        phone: userFound.phone,
+        avatar: userFound.avatar || ''
       }
     });
 

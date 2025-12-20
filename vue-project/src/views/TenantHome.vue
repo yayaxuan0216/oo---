@@ -17,9 +17,19 @@
       <nav v-if="isMenuOpen" class="side-drawer">
         <div class="drawer-header">
           <div class="avatar-circle">
-            {{ tenantName.charAt(0).toUpperCase() }}
+            <img 
+              v-if="tenantAvatar" 
+              :src="tenantAvatar" 
+              class="avatar-img" 
+              alt="頭貼"
+            />
+            <span v-else>
+              {{ tenantName.charAt(0).toUpperCase() }}
+            </span>
           </div>
+          
           <p class="drawer-username">嗨，{{ tenantName }}</p>
+          
           <button class="close-btn" @click="toggleMenu">✕</button>
         </div>
 
@@ -60,14 +70,33 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue' // ✨ 記得引入 onMounted
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
-const tenantName = ref('User')
 
-// 控制選單開關
+// ✨ 定義變數來存資料
+const tenantName = ref('User')
+const tenantAvatar = ref('') // 用來存圖片網址或 Base64
+
 const isMenuOpen = ref(false)
+
+// ✨ 修改重點 3：畫面載入時，從 localStorage 抓資料
+onMounted(() => {
+  const userStr = localStorage.getItem('currentUser')
+  
+  if (userStr) {
+    try {
+      const user = JSON.parse(userStr)
+      // 如果有名字就用名字，沒有就顯示 User
+      tenantName.value = user.name || 'User'
+      // 如果有頭貼就存起來
+      tenantAvatar.value = user.avatar || ''
+    } catch (e) {
+      console.error('解析使用者資料失敗:', e)
+    }
+  }
+})
 
 const toggleMenu = () => {
   isMenuOpen.value = !isMenuOpen.value
@@ -75,39 +104,36 @@ const toggleMenu = () => {
 
 const handleLogout = () => {
   if (confirm('確定要登出嗎？')) {
-    // 1. 清除 localStorage
     localStorage.removeItem('currentUser')
-    
-    // 2. 跳回登入頁
     router.push('/Login')
   }
 }
 </script>
 
 <style scoped>
+/* ... (原本的樣式保持不變，下面是修改的部分) ... */
 .tenant-page {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
   background: #f2e6dc;
   font-family: "Iansui", sans-serif;
-  /* 防止側邊選單打開時背景滾動 (簡單處理) */
   overflow-x: hidden; 
 }
 
-/* --- App Header --- */
 .top-bar {
   display: flex;
   align-items: center;
-  justify-content: space-between; /* 左右分散 */
+  justify-content: space-between;
   padding: 12px 16px;
   background: #4a2c21;
   color: #f2e6dc;
-  position: sticky; /* 固定在頂部 */
+  position: sticky;
   top: 0;
   z-index: 50;
   box-shadow: 0 2px 8px rgba(0,0,0,0.15);
   width: 100%;
+  box-sizing: border-box; /* 確保 padding 不會撐破寬度 */
 }
 
 .menu-btn {
@@ -126,16 +152,14 @@ const handleLogout = () => {
 }
 .logo-icon { font-size: 20px; }
 .logo-text { font-size: 18px; font-weight: 600; letter-spacing: 1px; }
-
-/* 佔位用，讓 Logo 視覺上置中 */
 .header-placeholder { width: 32px; }
 
-/* --- 側邊選單 (Drawer) --- */
+/* 側邊選單樣式 */
 .side-drawer {
   position: fixed;
   top: 0;
   left: 0;
-  width: 280px; /* 選單寬度 */
+  width: 280px;
   height: 100vh;
   background: #fffdf9;
   z-index: 100;
@@ -154,6 +178,7 @@ const handleLogout = () => {
   position: relative;
 }
 
+/* ✨ 修改重點 4：頭貼樣式調整 */
 .avatar-circle {
   width: 48px;
   height: 48px;
@@ -165,6 +190,16 @@ const handleLogout = () => {
   justify-content: center;
   font-weight: 700;
   font-size: 20px;
+  /* 關鍵：讓圖片超出圓形的部分被切掉 */
+  overflow: hidden; 
+  border: 2px solid rgba(255,255,255,0.2);
+}
+
+/* 新增：讓圖片填滿圓形 */
+.avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover; /* 確保圖片比例正確，不會變形 */
 }
 
 .drawer-username {
@@ -184,7 +219,7 @@ const handleLogout = () => {
 }
 
 .drawer-links {
-  flex: 1; /* 佔據中間剩餘空間 */
+  flex: 1;
   padding: 20px 0;
   display: flex;
   flex-direction: column;
@@ -198,7 +233,7 @@ const handleLogout = () => {
   text-decoration: none;
   font-size: 16px;
   transition: 0.2s;
-  border-left: 4px solid transparent; /* 預設左邊框透明 */
+  border-left: 4px solid transparent;
 }
 
 .drawer-item .icon {
@@ -210,11 +245,10 @@ const handleLogout = () => {
   background: #fdf6ed;
 }
 
-/* 當前選中的頁面樣式 */
 .router-link-active {
   background: #fdf6ed;
   color: #a18c7b;
-  border-left-color: #a18c7b; /* 亮起左邊框 */
+  border-left-color: #a18c7b;
   font-weight: 600;
 }
 
@@ -228,7 +262,7 @@ const handleLogout = () => {
   padding: 12px;
   border: 1px solid #e5e7eb;
   background: #fff;
-  color: #ef4444; /* 紅色文字 */
+  color: #ef4444;
   border-radius: 8px;
   font-size: 15px;
   cursor: pointer;
@@ -240,7 +274,6 @@ const handleLogout = () => {
   background: #fef2f2;
 }
 
-/* --- 遮罩層 (Overlay) --- */
 .overlay {
   position: fixed;
   top: 0;
@@ -249,11 +282,9 @@ const handleLogout = () => {
   height: 100vh;
   background: rgba(0,0,0,0.5);
   z-index: 90;
-  backdrop-filter: blur(2px); /* 模糊背景效果 */
+  backdrop-filter: blur(2px);
 }
 
-/* --- Vue Transition 動畫 --- */
-/* 滑入滑出動畫 */
 .slide-enter-active,
 .slide-leave-active {
   transition: transform 0.3s ease;
@@ -261,10 +292,9 @@ const handleLogout = () => {
 
 .slide-enter-from,
 .slide-leave-to {
-  transform: translateX(-100%); /* 往左移出畫面 */
+  transform: translateX(-100%);
 }
 
-/* 淡入淡出動畫 */
 .fade-enter-active,
 .fade-leave-active {
   transition: opacity 0.3s ease;
@@ -275,13 +305,10 @@ const handleLogout = () => {
   opacity: 0;
 }
 
-/* 主內容 */
 .main-container {
   flex: 1;
   padding: 16px 12px;
   width: 100%;
   box-sizing: border-box;
-  /* 手機版通常邊距會小一點 */
 }
-
 </style>

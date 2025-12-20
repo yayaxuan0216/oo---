@@ -1,25 +1,34 @@
+// backend/controllers/auth/updateProfile.js
 const { db } = require('../../firebase');
 
 const updateProfile = async (req, res) => {
-  console.log('收到更新資料請求:', req.body);
+  console.log('收到更新資料請求'); // 這裡可以看 log 確保有收到長長的圖片字串
   
   try {
-    const { userId, role, name, email } = req.body;
+    // 1. 多接收 avatar 欄位
+    const { userId, role, name, email, avatar } = req.body;
 
     if (!userId || !role) {
       return res.status(400).json({ message: '缺少使用者 ID 或身分' });
     }
 
-    // 1. 決定集合名稱
     const collectionName = role === 'landlord' ? 'landlords' : 'tenants';
 
-    // 2. 更新 Firestore 資料
-    await db.collection(collectionName).doc(userId).update({
+    // 2. 準備更新物件
+    const updateData = {
       name: name,
-      email: email || '' // 如果 email 是 undefined 則存空字串
-    });
+      email: email || ''
+    };
 
-    console.log('資料更新成功');
+    // ✨ 如果前端有傳圖片過來，才更新圖片欄位
+    if (avatar) {
+      updateData.avatar = avatar;
+    }
+
+    // 3. 更新 Firestore
+    await db.collection(collectionName).doc(userId).update(updateData);
+
+    console.log('資料與頭貼更新成功');
     res.status(200).json({ success: true, message: '資料更新成功' });
 
   } catch (error) {
