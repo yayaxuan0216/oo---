@@ -36,22 +36,30 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import ProfileInfo from './components/ProfileInfo.vue'
-// ❌ 移除 PasswordEdit 的引入
-// import PasswordEdit from './components/PasswordEdit.vue'
 
 const router = useRouter()
 
 const profile = ref({
-  name: 'User',
-  email: 'tenant@example.com'
+  name: '',
+  email: ''
 })
 
-const favoriteCount = ref(4)
+const favoriteCount = ref(0) // 暫時先寫死，之後再串收藏功能
 
-// 跳轉到修改密碼頁
+// 1. 頁面載入時，從 localStorage 抓資料
+onMounted(() => {
+  const userStr = localStorage.getItem('currentUser')
+  if (userStr) {
+    const user = JSON.parse(userStr)
+    // 假設 user 物件裡有 name, email (如果登入時沒回傳 email，這裡可能會是空的)
+    profile.value.name = user.name || ''
+    profile.value.email = user.email || user.phone || '' // 如果沒有 email 就顯示電話
+  }
+})
+
 const goToChangePassword = () => {
   router.push('/TenantHome/change-password')
 }
@@ -60,9 +68,43 @@ const goToFavorites = () => {
   router.push('/TenantHome/favorites')
 }
 
-// 這裡現在只負責儲存基本資料 (姓名)
-const handleSave = () => {
-  alert(`基本資料已更新！\n姓名：${profile.value.name}`)
+// 2. 處理儲存邏輯 (連接後端)
+const handleSave = async () => {
+  try {
+    const userStr = localStorage.getItem('currentUser')
+    if (!userStr) return
+    const user = JSON.parse(userStr)
+
+    // 發送請求
+    const response = await fetch('http://localhost:3000/api/update-profile', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userId: user.id,      // 告訴後端是誰
+        role: user.role,      // 告訴後端查哪張表
+        name: profile.value.name,
+        email: profile.value.email
+      })
+    })
+
+    const data = await response.json()
+
+    if (data.success) {
+      alert('✅ 基本資料已更新！')
+      
+      // ✨ 重要：更新 localStorage 裡的資料，這樣重整頁面名字才會變
+      user.name = profile.value.name
+      // 如果有改 email 也更新
+      // user.email = profile.value.email 
+      localStorage.setItem('currentUser', JSON.stringify(user))
+      
+    } else {
+      alert('更新失敗：' + data.message)
+    }
+  } catch (error) {
+    console.error(error)
+    alert('無法連線到伺服器')
+  }
 }
 </script>
 
