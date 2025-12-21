@@ -2,7 +2,7 @@
   <div class="tenant-page">
     <!-- Header -->
     <header class="top-bar">
-      <button class="menu-btn" @click="toggleMenu" type="button">
+      <button class="menu-btn" @click="toggleMenu">
         <span class="menu-icon">☰</span>
       </button>
 
@@ -14,59 +14,58 @@
       <div class="header-placeholder"></div>
     </header>
 
-    <!-- Drawer -->
     <transition name="slide">
       <nav v-if="isMenuOpen" class="side-drawer">
         <div class="drawer-header">
           <div class="avatar-circle">
-            {{ userStore.landlordName.charAt(0).toUpperCase() }}
+            <img 
+              v-if="landlordAvatar" 
+              :src="landlordAvatar" 
+              class="avatar-img" 
+              alt="房東頭貼"
+            />
+            <span v-else>
+              {{ landlordName.charAt(0).toUpperCase() }}
+            </span>
           </div>
-          <p class="drawer-username">
-            嗨，房東 {{ userStore.landlordName }}
-          </p>
-          <button class="close-btn" @click="toggleMenu" type="button">✕</button>
+
+          <p class="drawer-username">房東，{{ landlordName }}</p>
+          <button class="close-btn" @click="toggleMenu">✕</button>
         </div>
 
         <div class="drawer-links">
           <router-link to="/LandlordHome/rent" class="drawer-item" @click="toggleMenu">
-            <span class="icon">🏠</span> 租件管理
+            <span class="icon">🔑</span> 租件管理
           </router-link>
-
           <router-link to="/LandlordHome/lease" class="drawer-item" @click="toggleMenu">
             <span class="icon">📄</span> 租約管理
           </router-link>
-
           <router-link to="/LandlordHome/tenant" class="drawer-item" @click="toggleMenu">
             <span class="icon">👥</span> 房客管理
           </router-link>
-
           <router-link to="/LandlordHome/search" class="drawer-item" @click="toggleMenu">
             <span class="icon">🔍</span> 租屋搜尋
           </router-link>
-
           <router-link to="/LandlordHome/map" class="drawer-item" @click="toggleMenu">
             <span class="icon">🗺️</span> 地圖視覺
           </router-link>
-
           <router-link to="/LandlordHome/profile" class="drawer-item" @click="toggleMenu">
             <span class="icon">👤</span> 個人專區
           </router-link>
         </div>
 
         <div class="drawer-footer">
-          <button class="drawer-logout" @click="handleLogout" type="button">
+          <button class="drawer-logout" @click="handleLogout">
             登出帳號
           </button>
         </div>
       </nav>
     </transition>
 
-    <!-- Overlay -->
     <transition name="fade">
       <div v-if="isMenuOpen" class="overlay" @click="toggleMenu"></div>
     </transition>
 
-    <!-- Main -->
     <main class="main-container">
       <router-view v-slot="{ Component }">
         <keep-alive>
@@ -78,38 +77,58 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 
 const router = useRouter()
-const userStore = useUserStore()
 
-// 控制選單開關
+// 狀態變數
+const landlordName = ref('房東')
+const landlordAvatar = ref('')
 const isMenuOpen = ref(false)
 
+// 初始化：讀取 localStorage 資料
+onMounted(() => {
+  const userStr = localStorage.getItem('currentUser')
+  
+  if (userStr) {
+    try {
+      const user = JSON.parse(userStr)
+      landlordName.value = user.name || '房東'
+      landlordAvatar.value = user.avatar || ''
+    } catch (e) {
+      console.error('解析使用者資料失敗:', e)
+    }
+  }
+})
+
+// 選單控制
 const toggleMenu = () => {
   isMenuOpen.value = !isMenuOpen.value
 }
 
+// 登出邏輯
 const handleLogout = () => {
-  isMenuOpen.value = false
-  router.push('/Login')
+  if (confirm('確定要登出嗎？')) {
+    localStorage.removeItem('currentUser')
+    router.push('/Login')
+  }
 }
 </script>
 
 <style scoped>
-/* ⚠️ CSS 完全照你原本的，未動 */
-.tenant-page {
+/* 版面基礎設定 */
+.landlord-page {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
   background: #f2e6dc;
   font-family: "Iansui", sans-serif;
-  overflow-x: hidden;
+  overflow-x: hidden; 
 }
 
-/* --- App Header --- */
+/* --- Top Bar --- */
 .top-bar {
   display: flex;
   align-items: center;
@@ -122,6 +141,7 @@ const handleLogout = () => {
   z-index: 50;
   box-shadow: 0 2px 8px rgba(0,0,0,0.15);
   width: 100%;
+  box-sizing: border-box;
 }
 
 .menu-btn {
@@ -143,7 +163,7 @@ const handleLogout = () => {
 
 .header-placeholder { width: 32px; }
 
-/* --- 側邊選單 --- */
+/* --- 側邊選單 (Drawer) --- */
 .side-drawer {
   position: fixed;
   top: 0;
@@ -167,6 +187,7 @@ const handleLogout = () => {
   position: relative;
 }
 
+/* 頭貼樣式 */
 .avatar-circle {
   width: 48px;
   height: 48px;
@@ -178,6 +199,14 @@ const handleLogout = () => {
   justify-content: center;
   font-weight: 700;
   font-size: 20px;
+  overflow: hidden; /* 裁切圖片 */
+  border: 2px solid rgba(255,255,255,0.2);
+}
+
+.avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .drawer-username {
@@ -196,6 +225,7 @@ const handleLogout = () => {
   cursor: pointer;
 }
 
+/* 連結列表 */
 .drawer-links {
   flex: 1;
   padding: 20px 0;
@@ -223,6 +253,7 @@ const handleLogout = () => {
   background: #fdf6ed;
 }
 
+/* 當前頁面高亮樣式 */
 .router-link-active {
   background: #fdf6ed;
   color: #a18c7b;
@@ -230,6 +261,7 @@ const handleLogout = () => {
   font-weight: 600;
 }
 
+/* 登出按鈕區 */
 .drawer-footer {
   padding: 20px;
   border-top: 1px solid #eee;
@@ -244,15 +276,21 @@ const handleLogout = () => {
   border-radius: 8px;
   font-size: 15px;
   cursor: pointer;
+  font-family: "Iansui", sans-serif;
+  transition: 0.2s;
 }
 
 .drawer-logout:hover {
   background: #fef2f2;
 }
 
+/* --- 遮罩與動畫 --- */
 .overlay {
   position: fixed;
-  inset: 0;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
   background: rgba(0,0,0,0.5);
   z-index: 90;
   backdrop-filter: blur(2px);
@@ -276,6 +314,7 @@ const handleLogout = () => {
   opacity: 0;
 }
 
+/* --- 主內容區 --- */
 .main-container {
   flex: 1;
   padding: 16px 12px;

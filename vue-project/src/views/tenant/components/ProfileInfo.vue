@@ -18,7 +18,7 @@
     </div>
 
     <div class="form-group">
-      <label>Email</label>
+      <label>連絡電話</label>
       <input :value="email" type="email" disabled class="disabled-input" />
     </div>
   </div>

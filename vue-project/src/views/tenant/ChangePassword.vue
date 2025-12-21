@@ -51,9 +51,6 @@ import { useRouter } from 'vue-router'
 
 const router = useRouter()
 
-// 模擬後端資料庫目前的密碼
-const MOCK_CURRENT_PASSWORD = '123456'
-
 const form = ref({
   oldPassword: '',
   newPassword: '',
@@ -61,45 +58,71 @@ const form = ref({
 })
 
 const goBack = () => {
-  router.back() // 回上一頁
+  router.back()
 }
 
-const handleSubmit = () => {
-  // 1. 檢查欄位是否填寫
+const handleSubmit = async () => {
+  // 1. 前端基本檢查
   if (!form.value.oldPassword || !form.value.newPassword || !form.value.confirmPassword) {
     alert('請填寫所有欄位')
     return
   }
 
-  // 2. 模擬檢查舊密碼是否正確
-  if (form.value.oldPassword !== MOCK_CURRENT_PASSWORD) {
-    alert('❌ 舊密碼錯誤！(測試用：請輸入 123456)')
-    return
-  }
-
-  // 3. 檢查新密碼規則 (例如至少6碼)
   if (form.value.newPassword.length < 6) {
     alert('新密碼長度不足，請至少輸入 6 碼')
     return
   }
 
-  // 4. 檢查兩次新密碼是否一致
   if (form.value.newPassword !== form.value.confirmPassword) {
     alert('兩次新密碼輸入不一致')
     return
   }
 
-  // 5. 避免新密碼跟舊密碼一樣
   if (form.value.newPassword === form.value.oldPassword) {
     alert('新密碼不能與舊密碼相同')
     return
   }
 
-  // 成功
-  alert('✅ 密碼修改成功！請重新登入。')
-  
-  // 實務上這裡會呼叫 API，成功後通常會登出或是跳回個人頁
-  router.push('/TenantHome/profile')
+  // 2. 準備呼叫後端
+  try {
+    // 從 localStorage 取得目前使用者的 ID 和身分
+    const userStr = localStorage.getItem('currentUser')
+    if (!userStr) {
+      alert('登入時效已過，請重新登入')
+      router.push('/Login')
+      return
+    }
+    const user = JSON.parse(userStr)
+
+    // 發送請求
+    const response = await fetch('http://localhost:3000/api/change-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userId: user.id,       // 誰要改密碼
+        role: user.role,       // 查哪張表
+        oldPassword: form.value.oldPassword, // 傳舊密碼給後端檢查
+        newPassword: form.value.newPassword  // 傳新密碼給後端寫入
+      })
+    })
+
+    const data = await response.json()
+
+    if (data.success) {
+      alert('✅ 密碼修改成功！請重新登入。')
+      
+      // 清除登入狀態，強制使用者重新登入
+      localStorage.removeItem('currentUser')
+      router.push('/Login')
+    } else {
+      // 顯示後端回傳的錯誤 (例如：舊密碼錯誤)
+      alert('修改失敗：' + data.message)
+    }
+
+  } catch (error) {
+    console.error('API Error:', error)
+    alert('伺服器連線錯誤，請稍後再試')
+  }
 }
 </script>
 
