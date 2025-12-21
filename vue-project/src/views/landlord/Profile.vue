@@ -180,7 +180,8 @@ const handleSave = async () => {
     name: profile.value.name,
     email: profile.value.email,
     avatar: profile.value.avatar,
-    bio: profile.value.bio // ✨ 傳送 bio
+    bio: profile.value.bio,// ✨ 傳送 bio
+    role: 'landlord'
   }
 
   try {

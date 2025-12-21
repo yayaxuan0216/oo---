@@ -31,15 +31,9 @@
 </template>
 
 <script setup>
-import { ref,shallowRef, onMounted } from 'vue'
+import { ref, shallowRef, onMounted } from 'vue'
 
-// 因為沒有使用 Pinia，這裡放一份假資料供地圖使用
-const rentals = ref([
-  { id: 1, title: '雲科大旁溫馨套房', area: '雲科大周邊', price: 6500, lat: 23.7075, lng: 120.4305, roomType: '套房' },
-  { id: 2, title: '斗六市區採光雅房', area: '斗六市區', price: 5500, lat: 23.707, lng: 120.429, roomType: '雅房' },
-  { id: 3, title: '火車站附近電梯大樓套房', area: '火車站附近', price: 8000, lat: 23.709, lng: 120.4255, roomType: '套房' }
-])
-
+const rentals = ref([])
 const map = shallowRef(null)
 const markers = shallowRef([])
 
@@ -47,58 +41,117 @@ const initMap = () => {
   const el = document.getElementById('landlord-map')
   if (!el) return
 
-  // 檢查 Google Maps API 是否載入
   if (!window.google || !window.google.maps) {
-    console.warn('Google Maps API 未載入，地圖無法顯示。')
-    el.innerHTML = '<div style="padding:20px;text-align:center;color:#666;">Google Maps API 未載入 (請確認 index.html 有引入 script)</div>'
+    el.innerHTML = '<div style="padding:20px;text-align:center;">Google Maps API 未載入</div>'
     return
   }
 
   map.value = new window.google.maps.Map(el, {
-    center: { lat: 23.708, lng: 120.429 },
-    zoom: 14,
+    center: { lat: 23.709, lng: 120.430 },
+    zoom: 13,
     mapTypeControl: true,
-    mapTypeControlOptions: {
-      style: window.google.maps.MapTypeControlStyle.DROPDOWN_MENU,
-      position: window.google.maps.ControlPosition.TOP_RIGHT
-    }
   })
+}
 
-  updateMarkers()
+const fetchMyRentals = async () => {
+  try {
+    const userStr = localStorage.getItem('currentUser')
+    if (!userStr) return
+    const user = JSON.parse(userStr)
+    console.log('👤 [Debug] 當前登入 ID:', user.id)
+
+    const res = await fetch(`http://localhost:3000/api/rentals/list?landlordId=${user.id}`)
+    const json = await res.json()
+
+    if (json.success) {
+      const allRentals = json.data
+      console.log(`📦 [Debug] API 總共回傳了 ${allRentals.length} 筆資料`)
+      
+      if (allRentals.length > 0) {
+        console.log('🔍 [Debug] 第一筆資料長這樣 (請檢查欄位名稱):', allRentals[0])
+      }
+
+      // 1. 檢查 ID 篩選
+      const myRentals = allRentals.filter(item => {
+        // 寬鬆比較 (避免數字/字串型別問題)
+        return String(item.landlordId) === String(user.id)
+      })
+      console.log(`bust [Debug] ID 符合的資料有: ${myRentals.length} 筆`)
+
+      if (myRentals.length === 0 && allRentals.length > 0) {
+         console.warn('⚠️ 警告：找不到您的租件！請檢查資料庫裡的 landlordId 是否跟上面的「當前登入 ID」一樣？')
+      }
+
+      // 2. 檢查座標篩選
+      const validRentals = myRentals.filter(item => {
+        const hasLat = item.lat !== undefined && item.lat !== null && item.lat !== ''
+        const hasLng = item.lng !== undefined && item.lng !== null && item.lng !== ''
+        if (!hasLat || !hasLng) {
+            console.log(`❌ [剔除] 這筆資料缺少座標: ${item.title}`, item)
+        }
+        return hasLat && hasLng
+      })
+
+      console.log(`📍 [Debug] 最終有座標的資料: ${validRentals.length} 筆`)
+
+      // 賦值
+      rentals.value = validRentals.map(item => ({
+        ...item,
+        lat: parseFloat(item.lat),
+        lng: parseFloat(item.lng),
+        area: item.area || item.address
+      }))
+
+      updateMarkers()
+    }
+  } catch (error) {
+    console.error('API Error:', error)
+  }
 }
 
 const updateMarkers = () => {
   if (!map.value || !window.google) return
 
+  // 清除舊標記
   markers.value.forEach(m => m.setMap(null))
   markers.value = []
 
   rentals.value.forEach(rental => {
-    if (!rental.lat || !rental.lng) return
+    // 建立地標
     const marker = new window.google.maps.Marker({
       position: { lat: rental.lat, lng: rental.lng },
       map: map.value,
-      title: rental.title
+      title: rental.title,
+      animation: window.google.maps.Animation.DROP
     })
 
+    // 建立資訊視窗
     const info = new window.google.maps.InfoWindow({
-      content: `<div style="font-size:13px;"><b>${rental.title}</b><br>${rental.price}元</div>`
+      content: `<div style="padding:5px; color:#2e2622;"><b>${rental.title}</b><br>$${Number(rental.price).toLocaleString()}/月</div>`
     })
 
     marker.addListener('click', () => info.open(map.value, marker))
     markers.value.push(marker)
   })
+
+  // 自動調整視野 (如果有資料的話)
+  if (markers.value.length > 0) {
+    const bounds = new window.google.maps.LatLngBounds()
+    markers.value.forEach(m => bounds.extend(m.getPosition()))
+    map.value.fitBounds(bounds)
+  }
 }
 
 const focusOnRental = (rental) => {
-  if (!map.value) return
-  map.value.panTo({ lat: rental.lat, lng: rental.lng })
-  map.value.setZoom(16)
+  if (map.value && rental.lat && rental.lng) {
+    map.value.panTo({ lat: rental.lat, lng: rental.lng })
+    map.value.setZoom(16)
+  }
 }
 
-// ✨ 重點：使用 onMounted，只要一進入這個分頁就會初始化地圖
-onMounted(() => {
+onMounted(async () => {
   initMap()
+  await fetchMyRentals()
 })
 </script>
 

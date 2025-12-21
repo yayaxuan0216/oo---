@@ -138,7 +138,7 @@ const initMap = () => {
   
   isApiLoaded.value = true
   map.value = new window.google.maps.Map(el, {
-    center: { lat: 23.705, lng: 120.430 }, // 預設中心 (斗六)
+    center: { lat: 23.695574, lng: 120.531446 }, // 預設中心 (斗六)
     zoom: 14,
     disableDefaultUI: false,
     clickableIcons: false
