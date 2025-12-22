@@ -70,7 +70,12 @@ const router = createRouter({
                     path: 'profile',
                     name: 'LandlordProfile',
                     component: () => import('../views/landlord/Profile.vue')
-                }
+                },
+                {
+                    path: 'appointments',
+                    name: 'LandlordAppointments',
+                    component: () => import('../views/landlord/LandlordAppointments.vue')
+                },
             ]
         },
         // 公開頁面 (不用登入)

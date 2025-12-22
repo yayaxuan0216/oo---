@@ -145,12 +145,21 @@
       </div>
     </div>
 
+    <BookingModal 
+      v-if="showBookingModal" 
+      :rental="rental" 
+      :user="currentUser"
+      @close="showBookingModal = false"
+    />
+
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+// 👇 請確保已建立此元件
+import BookingModal from './components/BookingModal.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -162,9 +171,13 @@ const error = ref('')
 const isFavorite = ref(false)
 const defaultImage = 'https://cdn-icons-png.flaticon.com/512/609/609803.png'
 
-// 房東 Modal 狀態
+// 房東資訊相關
 const showLandlordModal = ref(false)
 const landlordInfo = ref({})
+
+// 預約相關
+const showBookingModal = ref(false)
+const currentUser = ref(null)
 
 // 🚀 初始化：抓取房源資料
 onMounted(async () => {
@@ -195,26 +208,18 @@ const shareLink = () => {
     .catch(() => alert('請手動複製網址'))
 }
 
-// ❤️ 收藏 (前端模擬)
+// ❤️ 收藏
 const toggleFavorite = () => { isFavorite.value = !isFavorite.value }
 
 // 🗺️ 開啟 Google Maps
 const openGoogleMap = () => {
   if (rental.value.address) {
-    // 使用 encodeURIComponent 避免中文亂碼
-    window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(rental.value.address)}`, '_blank')
+    window.open(`http://maps.google.com/?q=${encodeURIComponent(rental.value.address)}`, '_blank')
   }
 }
 
-// 📞 聯絡房東 (預約)
-const contactLandlord = () => {
-  alert('已發送預約請求！(此功能未來可串接聊天室)')
-  showLandlordModal.value = false
-}
-
-// 👨‍💼 打開房東 Modal (Lazy Load)
+// 👨‍💼 打開房東 Modal
 const openLandlordModal = async () => {
-  // 如果已經抓過，直接顯示
   if (landlordInfo.value.id) {
     showLandlordModal.value = true
     return
@@ -227,7 +232,6 @@ const openLandlordModal = async () => {
   }
 
   try {
-    // 呼叫我們剛剛修好的 User API (它會去 landlord 集合抓)
     const res = await fetch(`http://localhost:3000/api/user/${landlordId}`)
     const json = await res.json()
     
@@ -242,6 +246,24 @@ const openLandlordModal = async () => {
     console.error(e)
     alert('連線失敗')
   }
+}
+
+// 📅 點擊「立即預約」按鈕
+const contactLandlord = () => {
+  // 1. 檢查是否登入
+  const userStr = localStorage.getItem('currentUser')
+  if (!userStr) {
+    alert('請先登入才能預約看房喔！')
+    router.push('/login') // 假設您有 Login 頁面
+    return
+  }
+  
+  // 2. 設定當前使用者並打開預約 Modal
+  currentUser.value = JSON.parse(userStr)
+  showBookingModal.value = true
+  
+  // 如果原本打開著房東資訊卡，也把它關掉，體驗較好
+  showLandlordModal.value = false
 }
 </script>
 
@@ -327,7 +349,7 @@ const openLandlordModal = async () => {
 }
 .contact-btn:active { transform: scale(0.98); }
 
-/* ✨✨✨ Modal 樣式 ✨✨✨ */
+/* ✨ Modal 樣式 (房東資訊卡專用) ✨ */
 .modal-overlay {
   position: fixed; top: 0; left: 0; width: 100%; height: 100%;
   background: rgba(0,0,0,0.5); z-index: 200;

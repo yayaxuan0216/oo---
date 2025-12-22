@@ -1,158 +1,169 @@
 <template>
   <div class="page-container">
-    <h2 class="section-title">看房預約</h2>
-    <p class="subtitle">您預約的租件看房進度如下。</p>
+    <h2 class="page-title">看房預約紀錄 (對話模式)</h2>
 
-    <div class="reservation-list">
-      <div 
-        v-for="item in reservations" 
-        :key="item.id" 
-        class="card"
-      >
+    <div class="tabs">
+      <button v-for="tab in tabs" :key="tab.value" class="tab-btn"
+        :class="{ active: currentTab === tab.value }"
+        @click="currentTab = tab.value">{{ tab.label }}</button>
+    </div>
+
+    <div v-if="isLoading" class="loading-state">
+      <div class="spinner"></div><p>載入中...</p>
+    </div>
+
+    <div v-else class="list-container">
+      <div v-if="filteredList.length === 0" class="empty-state">尚無紀錄</div>
+
+      <div v-for="item in filteredList" :key="item.id" class="card" :class="item.status">
         <div class="card-header">
-          <h3 class="rental-title">{{ item.rentalTitle }}</h3>
-          <span 
-            class="status-badge"
-            :class="item.status === 'confirmed' ? 'status-success' : 'status-pending'"
-          >
-            {{ item.status === 'confirmed' ? '🎉 預約成功' : '⏳ 房東確認中' }}
-          </span>
+          <span class="rental-name">{{ item.rentalTitle }}</span>
+          <span class="status-badge" :class="item.status">{{ getStatusText(item.status) }}</span>
         </div>
 
-        <div class="info-row">
-          <span class="label">看房時間：</span>
-          <span class="value">{{ item.time }}</span>
-        </div>
-        <div class="info-row">
-          <span class="label">房東：</span>
-          <span class="value">{{ item.landlordName }}</span>
-        </div>
-        <div class="info-row" v-if="item.note">
-          <span class="label">備註：</span>
-          <span class="value">{{ item.note }}</span>
+        <div class="card-body">
+          <div class="info-row"><span class="icon">📅</span> {{ item.date }} {{ item.time }}</div>
+          <div class="info-row" v-if="item.message && (!item.history || item.history.length === 0)">
+            <span class="icon">📝</span> 備註：{{ item.message }}
+          </div>
+
+          <div class="chat-section" v-if="item.history && item.history.length > 0">
+            <div class="chat-box">
+              <div 
+                v-for="(msg, idx) in item.history" 
+                :key="idx" 
+                class="chat-bubble"
+                :class="msg.role === 'tenant' ? 'me' : 'other'"
+              >
+                <div class="bubble-content">
+                  <strong>{{ msg.role === 'tenant' ? '我' : '房東' }}</strong>
+                  <p>{{ msg.content }}</p>
+                  <span class="msg-time">{{ formatTime(msg.createdAt) }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="input-area" v-if="['pending', 'negotiating'].includes(item.status)">
+            <input 
+              v-model="inputMap[item.id]" 
+              placeholder="回覆房東..." 
+              @keyup.enter="sendReply(item.id)"
+            />
+            <button class="reply-btn" @click="sendReply(item.id)">回覆</button>
+          </div>
         </div>
 
-        <div class="card-footer">
-          <button class="outline-btn" @click="contactLandlord(item)">
-            聯絡房東
-          </button>
-          <button 
-            v-if="item.status === 'pending'" 
-            class="cancel-btn" 
-            @click="cancelReservation(item.id)"
-          >
-            取消預約
-          </button>
+        <div class="card-footer" v-if="['pending', 'negotiating'].includes(item.status)">
+          <button class="cancel-btn" @click="cancelAppoint(item.id)">取消預約</button>
         </div>
-      </div>
-
-      <div v-if="reservations.length === 0" class="empty-state">
-        目前沒有任何預約，快去「找房」看看吧！
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 
-// 1. 定義預約列表，初始為空陣列
-const reservations = ref([])
-// 定義後端 API 網址 (記得對應後端的 PORT)
-const API_URL = 'http://localhost:3000/api/reservations'
+const appointments = ref([])
+const isLoading = ref(true)
+const currentTab = ref('active')
+const inputMap = ref({})
 
-// 2. 取得資料的函式
-const fetchReservations = async () => {
+const tabs = [
+  { label: '進行中', value: 'active' },
+  { label: '歷史紀錄', value: 'history' }
+]
+
+const fetchMyReservations = async () => {
   try {
-    const response = await fetch(API_URL)
-    const data = await response.json()
-    reservations.value = data // 將後端傳回的資料放入變數
-  } catch (error) {
-    console.error('取得資料失敗:', error)
-    alert('無法載入預約資料，請檢查後端是否開啟')
-  }
+    const user = JSON.parse(localStorage.getItem('currentUser'))
+    if (!user) return
+    const res = await fetch(`http://localhost:3000/api/appointments/tenant/${user.id}`)
+    const json = await res.json()
+    if (json.success) appointments.value = json.data
+  } catch (e) { console.error(e) } finally { isLoading.value = false }
 }
 
-// 3. 頁面載入完成後，執行抓取資料
-onMounted(() => {
-  fetchReservations()
+const sendReply = async (id) => {
+  const msg = inputMap.value[id]
+  if (!msg) return alert('請輸入內容')
+
+  try {
+    const res = await fetch(`http://localhost:3000/api/appointments/${id}/message`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ role: 'tenant', message: msg }) // 👈 身份是房客
+    })
+
+    if (res.ok) {
+      const target = appointments.value.find(i => i.id === id)
+      if (target) {
+        if (!target.history) target.history = []
+        target.history.push({ role: 'tenant', content: msg, createdAt: new Date().toISOString() })
+        target.status = 'negotiating'
+      }
+      inputMap.value[id] = ''
+    }
+  } catch (e) { alert('發送失敗') }
+}
+
+const cancelAppoint = async (id) => {
+  if (!confirm('確定取消？')) return
+  try {
+    const res = await fetch(`http://localhost:3000/api/appointments/${id}/status`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: 'cancelled' })
+    })
+    if (res.ok) {
+      const target = appointments.value.find(i => i.id === id)
+      if (target) target.status = 'cancelled'
+    }
+  } catch (e) { alert('操作失敗') }
+}
+
+const filteredList = computed(() => {
+  if (currentTab.value === 'active') return appointments.value.filter(i => ['pending', 'negotiating', 'confirmed'].includes(i.status))
+  return appointments.value.filter(i => ['rejected', 'cancelled'].includes(i.status))
 })
 
-const contactLandlord = (item) => {
-  alert(`開啟與 ${item.landlordName} 的聊天室...`)
-}
+const getStatusText = (s) => ({ pending: '待確認', confirmed: '預約成功', rejected: '已婉拒', negotiating: '協調中', cancelled: '已取消' }[s] || s)
+const formatTime = (iso) => iso ? new Date(iso).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : ''
 
-// 4. 取消預約 (串接 DELETE API)
-const cancelReservation = async (id) => {
-  if (!confirm('確定要取消這個預約嗎？')) return
-
-  try {
-    // 發送 DELETE 請求給後端
-    const response = await fetch(`${API_URL}/${id}`, {
-      method: 'DELETE'
-    })
-    
-    if (response.ok) {
-      // 如果後端刪除成功，前端也更新畫面
-      reservations.value = reservations.value.filter(r => r.id !== id)
-      alert('預約已取消')
-    } else {
-      alert('取消失敗，請稍後再試')
-    }
-  } catch (error) {
-    console.error('刪除錯誤:', error)
-    alert('網路錯誤，無法取消')
-  }
-}
+onMounted(() => fetchMyReservations())
 </script>
 
 <style scoped>
-.page-container {
-  max-width: 800px;
-  margin: 0 auto;
-}
+.page-container { padding: 20px; max-width: 600px; margin: 0 auto; padding-bottom: 80px; }
+.tabs { display: flex; gap: 12px; margin-bottom: 20px; border-bottom: 1px solid #ddd; }
+.tab-btn { background: none; border: none; padding: 10px 4px; color: #888; cursor: pointer; border-bottom: 3px solid transparent; }
+.tab-btn.active { color: #4a2c21; font-weight: 600; border-bottom-color: #4a2c21; }
+.card { background: white; border-radius: 12px; padding: 16px; margin-bottom: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); border: 1px solid #f0f0f0; }
+.card-header { display: flex; justify-content: space-between; margin-bottom: 12px; }
+.status-badge { font-size: 12px; padding: 4px 8px; border-radius: 6px; font-weight: 600; background: #eee; }
+.status-badge.confirmed { background: #ecfdf5; color: #047857; }
+.status-badge.negotiating { background: #fefce8; color: #b45309; }
 
-.section-title { font-size: 20px; font-weight: 600; color: #2e2622; margin-bottom: 4px; }
-.subtitle { font-size: 13px; color: #6b7280; margin-bottom: 16px; }
+/* 對話樣式 */
+.chat-section { margin-top: 10px; padding: 10px; background: #f9f9f9; border-radius: 8px; }
+.chat-box { max-height: 150px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
+.chat-bubble { max-width: 85%; padding: 6px 10px; border-radius: 10px; font-size: 13px; }
+.chat-bubble strong { display: block; font-size: 10px; margin-bottom: 2px; }
+.chat-bubble p { margin: 0; }
+.msg-time { font-size: 10px; opacity: 0.6; display: block; text-align: right; }
 
-.card {
-  background: #fffdf9;
-  border-radius: 12px;
-  padding: 16px;
-  margin-bottom: 12px;
-  border: 1px solid #e5e7eb;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-}
+/* 我 (房客) 靠右 */
+.chat-bubble.me { align-self: flex-end; background: #4a2c21; color: white; }
+.chat-bubble.me .msg-time { color: #ddd; }
+/* 對方 (房東) 靠左 */
+.chat-bubble.other { align-self: flex-start; background: #e5e7eb; color: #333; }
 
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12px;
-  padding-bottom: 12px;
-  border-bottom: 1px dashed #e5e7eb;
-}
+.input-area { display: flex; gap: 8px; margin-top: 10px; }
+.input-area input { flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 6px; }
+.reply-btn { background: #4a2c21; color: white; border: none; padding: 0 12px; border-radius: 6px; cursor: pointer; }
 
-.rental-title { font-size: 16px; font-weight: 600; color: #4a2c21; }
-
-.status-badge { font-size: 12px; padding: 4px 10px; border-radius: 20px; font-weight: 500; }
-.status-pending { background: #fff7ed; color: #c2410c; border: 1px solid #ffedd5; }
-.status-success { background: #ecfdf5; color: #047857; border: 1px solid #d1fae5; }
-
-.info-row { display: flex; font-size: 14px; margin-bottom: 6px; }
-.label { color: #6b7280; min-width: 70px; }
-.value { color: #374151; }
-
-.card-footer { margin-top: 16px; display: flex; gap: 8px; justify-content: flex-end; }
-
-.outline-btn {
-  border: 1px solid #a18c7b; background: white; color: #4a2c21;
-  padding: 6px 12px; border-radius: 8px; font-size: 13px; cursor: pointer;
-}
-.cancel-btn {
-  border: 1px solid #fee2e2; background: #fff1f2; color: #be123c;
-  padding: 6px 12px; border-radius: 8px; font-size: 13px; cursor: pointer;
-}
-
-.empty-state { text-align: center; color: #9ca3af; padding: 40px; }
+.card-footer { margin-top: 16px; border-top: 1px solid #f9fafb; padding-top: 12px; text-align: right; }
+.cancel-btn { background: white; border: 1px solid #ddd; padding: 6px 12px; border-radius: 6px; color: #666; cursor: pointer; font-size: 13px; }
+.cancel-btn:hover { background: #fef2f2; color: #ef4444; border-color: #fecaca; }
 </style>

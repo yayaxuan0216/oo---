@@ -42,6 +42,9 @@
           <router-link to="/LandlordHome/tenant" class="drawer-item" @click="toggleMenu">
             <span class="icon">👥</span> 房客管理
           </router-link>
+          <router-link to="/LandlordHome/appointments" class="drawer-item" @click="toggleMenu">
+            <span class="icon">📅</span> 預約管理
+          </router-link>
           <router-link to="/LandlordHome/search" class="drawer-item" @click="toggleMenu">
             <span class="icon">🔍</span> 租屋搜尋
           </router-link>
