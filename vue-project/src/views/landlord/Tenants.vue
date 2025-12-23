@@ -22,7 +22,7 @@
                 <th>聯絡電話</th>
                 <th>合約狀態</th>
                 <th width="140">本月繳費狀態</th>
-                <th>操作</th>
+                <th width="180">操作</th>
               </tr>
             </thead>
             <tbody>
@@ -42,7 +42,7 @@
                   </button>
                 </td>
 
-                <td>
+                <td class="action-cell">
                   <button class="table-btn chat-btn" @click="openChat(t)">💬 聊天</button>
                   <button class="table-btn" @click="editTenant(t)">編輯</button>
                   <button class="table-btn warning" @click="moveToHistory(t)">封存</button>
@@ -51,7 +51,10 @@
               </tr>
             </tbody>
           </table>
-          <button class="small-btn" @click="addTenant(group.rentalId)">＋ 新增房客</button>
+          
+          <button class="small-btn add-btn" @click="openAddModal(group.rentalId)">
+            ＋ 新增房客
+          </button>
         </article>
       </div>
 
@@ -76,10 +79,10 @@
                 <td>{{ t.name }}</td>
                 <td>{{ t.phone }}</td>
                 <td><span class="text-gray">歷史資料</span></td>
-                <td>
+                <td class="action-cell">
                   <button class="table-btn outline" @click="restoreTenant(t)">還原</button>
                   <button class="table-btn danger" @click="removeTenant(t.id)">永久刪除</button>
-                  <button class="table-btn outline" @click="viewTenantHistory(t)">過往紀錄</button>
+                  <button class="table-btn outline" @click="viewTenantHistory(t)">紀錄</button>
                 </td>
               </tr>
             </tbody>
@@ -113,25 +116,21 @@
           <tbody>
             <tr v-for="month in displayMonths" :key="month">
               <td class="month-col">{{ month }}</td>
-              
               <td class="text-center">
                 <label class="checkbox-wrapper center">
                   <input type="checkbox" v-model="getRecord(currentPaymentTenant, month).rent">
                 </label>
               </td>
-
               <td class="text-center">
                 <label class="checkbox-wrapper center">
                   <input type="checkbox" v-model="getRecord(currentPaymentTenant, month).water">
                 </label>
               </td>
-
               <td class="text-center">
                 <label class="checkbox-wrapper center">
                   <input type="checkbox" v-model="getRecord(currentPaymentTenant, month).electric">
                 </label>
               </td>
-
               <td>
                 <span class="status-text" :class="isMonthCleared(currentPaymentTenant, month) ? 'ok' : 'pending'">
                   {{ isMonthCleared(currentPaymentTenant, month) ? '已繳清' : '未繳清' }}
@@ -140,7 +139,6 @@
             </tr>
           </tbody>
         </table>
-        
         <div class="payment-actions">
            <button class="small-btn" @click="backToList">完成並返回</button>
         </div>
@@ -209,6 +207,28 @@
       </div>
     </template>
 
+    <div v-if="showAddModal" class="modal-overlay">
+      <div class="modal-box">
+        <h3 class="modal-title">新增房客</h3>
+        <p class="modal-sub">{{ tempTenantForm.rentalTitle }}</p>
+        
+        <div class="form-group">
+          <label>房客姓名</label>
+          <input type="text" v-model="tempTenantForm.name" placeholder="請輸入姓名">
+        </div>
+
+        <div class="form-group">
+          <label>聯絡電話</label>
+          <input type="text" v-model="tempTenantForm.phone" placeholder="請輸入電話">
+        </div>
+
+        <div class="modal-actions">
+          <button class="small-btn outline" @click="closeAddModal">取消</button>
+          <button class="small-btn primary" @click="confirmAddTenant">確定新增</button>
+        </div>
+      </div>
+    </div>
+
   </section>
 </template>
 
@@ -216,17 +236,21 @@
 import { ref, computed, nextTick } from 'vue'
 
 // --- 資料與狀態 ---
-const currentView = ref('list') // 'list', 'chat', 'history', 'payment'
+const currentView = ref('list') 
 const currentChatTenant = ref(null)
 const currentHistoryTenant = ref(null)
 const currentPaymentTenant = ref(null)
+
+// Modal 相關狀態
+const showAddModal = ref(false)
+const tempTenantForm = ref({ rentalId: null, rentalTitle: '', name: '', phone: '' })
 
 const inputMessage = ref('')
 const chatContainerRef = ref(null)
 const chatMessages = ref([])
 const historyRecords = ref([])
 
-// 時間與日期相關工具
+// 時間工具
 const getCurrentMonthStr = () => {
   const now = new Date()
   return `${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}`
@@ -246,22 +270,10 @@ const displayMonths = computed(() => {
 
 // 房客資料
 const tenants = ref([
-  { 
-    id: 1, rentalId: 1, rentalTitle: '雲科大旁溫馨套房', name: '小明', phone: '0912345678', contractStatus: '簽約中', isHistory: false,
-    records: {} 
-  },
-  { 
-    id: 2, rentalId: 1, rentalTitle: '雲科大旁溫馨套房', name: '小華', phone: '0922111333', contractStatus: '即將到期', isHistory: false,
-    records: {}
-  },
-  { 
-    id: 3, rentalId: 2, rentalTitle: '斗六市區電梯雅房', name: '小美', phone: '0933222444', contractStatus: '生效中', isHistory: false,
-    records: {}
-  },
-  { 
-    id: 4, rentalId: 1, rentalTitle: '雲科大旁溫馨套房', name: '老陳', phone: '0900888999', contractStatus: '已退租', isHistory: true,
-    records: {}
-  }
+  { id: 1, rentalId: 1, rentalTitle: '雲科大旁溫馨套房', name: '小明', phone: '0912345678', contractStatus: '簽約中', isHistory: false, records: {} },
+  { id: 2, rentalId: 1, rentalTitle: '雲科大旁溫馨套房', name: '小華', phone: '0922111333', contractStatus: '即將到期', isHistory: false, records: {} },
+  { id: 3, rentalId: 2, rentalTitle: '斗六市區電梯雅房', name: '小美', phone: '0933222444', contractStatus: '生效中', isHistory: false, records: {} },
+  { id: 4, rentalId: 1, rentalTitle: '雲科大旁溫馨套房', name: '老陳', phone: '0900888999', contractStatus: '已退租', isHistory: true, records: {} }
 ])
 const rentals = [{ id: 1, title: '雲科大旁溫馨套房' }, { id: 2, title: '斗六市區電梯雅房' }]
 
@@ -277,7 +289,47 @@ const groupTenants = (tenantList) => {
 const activeTenantGroups = computed(() => groupTenants(tenants.value.filter(t => !t.isHistory)))
 const historyTenantGroups = computed(() => groupTenants(tenants.value.filter(t => t.isHistory)))
 
-// --- 繳費管理邏輯 ---
+// --- [修改] 新增房客邏輯 (改用 Modal) ---
+const openAddModal = (rentalId) => {
+  const rental = rentals.find(r => r.id === rentalId)
+  // 初始化表單
+  tempTenantForm.value = {
+    rentalId: rentalId,
+    rentalTitle: rental ? rental.title : '未知租件',
+    name: '',
+    phone: ''
+  }
+  showAddModal.value = true
+}
+
+const closeAddModal = () => {
+  showAddModal.value = false
+}
+
+const confirmAddTenant = () => {
+  const { name, phone, rentalId, rentalTitle } = tempTenantForm.value
+  
+  if (!name || !phone) {
+    alert('請填寫完整資料')
+    return
+  }
+
+  tenants.value.push({
+    id: Date.now(),
+    rentalId,
+    rentalTitle,
+    name,
+    phone,
+    contractStatus: '新合約',
+    isHistory: false,
+    records: {}
+  })
+
+  // 關閉 Modal
+  closeAddModal()
+}
+
+// --- 繳費管理 ---
 const openPayment = (t) => { currentPaymentTenant.value = t; currentView.value = 'payment' }
 const getRecord = (t, month) => {
   if (!t.records[month]) t.records[month] = { rent: false, water: false, electric: false }
@@ -286,77 +338,63 @@ const getRecord = (t, month) => {
 const isMonthCleared = (t, month) => { const r = getRecord(t, month); return r.rent && r.water && r.electric }
 const isCurrentMonthPaid = (t) => { return isMonthCleared(t, getCurrentMonthStr()) }
 
-// --- 房客管理邏輯 ---
-const addTenant = (rentalId) => {
-  const rental = rentals.find(r => r.id === rentalId)
-  const name = window.prompt('房客姓名：')
-  const phone = window.prompt('房客電話：')
-  if(name && phone) tenants.value.push({ id: Date.now(), rentalId, rentalTitle: rental.title, name, phone, contractStatus: '新合約', isHistory: false, records: {} })
-}
+// --- 房客管理 ---
 const editTenant = (t) => { t.name = window.prompt('修改姓名：', t.name) || t.name }
 const moveToHistory = (t) => { if (confirm(`將「${t.name}」封存至歷史？`)) { t.isHistory = true; t.contractStatus = '已退租' } }
 const restoreTenant = (t) => { if (confirm(`還原「${t.name}」至現任？`)) { t.isHistory = false; t.contractStatus = '續約中' } }
 const removeTenant = (id) => { if (confirm('永久刪除？')) tenants.value = tenants.value.filter(t => t.id !== id) }
 
-// --- 歷史紀錄邏輯 ---
+// --- 歷史紀錄 ---
 const viewTenantHistory = (t) => {
   currentHistoryTenant.value = t; currentView.value = 'history'
   historyRecords.value = [ { date: '2025/01/05', type: '租金', amount: 8500, note: '轉帳' }, { date: '2025/01/05', type: '水電費', amount: 1200, note: '現金' } ]
 }
 
-// --- 聊天室邏輯 ---
+// --- 聊天室 ---
 const openChat = (tenant) => {
   currentChatTenant.value = tenant; currentView.value = 'chat'
   chatMessages.value = [{ text: '你好，房租收到了嗎？', isMe: false, time: '昨天 10:00' }]
   scrollToBottom()
 }
-
-const backToList = () => { 
-  currentView.value = 'list'
-  currentChatTenant.value = null; currentHistoryTenant.value = null; currentPaymentTenant.value = null 
-} 
-
+const backToList = () => { currentView.value = 'list'; currentChatTenant.value = null; currentHistoryTenant.value = null; currentPaymentTenant.value = null } 
 const sendMessage = () => {
   if(!inputMessage.value.trim()) return
-  
-  const now = new Date()
-  const time = `${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}`
-
-  // 1. 顯示我的訊息
+  const now = new Date(); const time = `${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}`
   chatMessages.value.push({ text: inputMessage.value, isMe: true, time })
-  inputMessage.value = ''
-  scrollToBottom()
-
-  // 2. [新增] 模擬房客延遲回覆
+  inputMessage.value = ''; scrollToBottom()
   setTimeout(() => {
-    const replyNow = new Date()
-    const replyTime = `${replyNow.getHours()}:${String(replyNow.getMinutes()).padStart(2, '0')}`
-    
-    chatMessages.value.push({ 
-      text: '好的，收到！', 
-      isMe: false, 
-      time: replyTime 
-    })
+    const replyNow = new Date(); const replyTime = `${replyNow.getHours()}:${String(replyNow.getMinutes()).padStart(2, '0')}`
+    chatMessages.value.push({ text: '好的，收到！', isMe: false, time: replyTime })
     scrollToBottom()
   }, 1000)
 }
-
 const scrollToBottom = async () => { await nextTick(); if (chatContainerRef.value) chatContainerRef.value.scrollTop = chatContainerRef.value.scrollHeight }
 </script>
 
 <style scoped>
 /* 共用樣式 */
 .sub-title { margin-top: 24px; margin-bottom: 8px; font-size: 18px; font-weight: 700; color: #2e2622; display: flex; align-items: center; gap: 8px; }
-.panel { max-width: 1100px; margin: 0 auto; background: #fffdf9; border-radius: 16px; padding: 16px 18px 18px; box-shadow: 0 4px 14px rgba(46, 38, 34, 0.12); border: 1px solid rgba(242, 230, 220, 0.9); height: 85vh; display: flex; flex-direction: column; overflow: hidden; }
+.panel { max-width: 1100px; margin: 0 auto; background: #fffdf9; border-radius: 16px; padding: 16px 18px 18px; box-shadow: 0 4px 14px rgba(46, 38, 34, 0.12); border: 1px solid rgba(242, 230, 220, 0.9); height: 85vh; display: flex; flex-direction: column; overflow: hidden; position: relative; } /* position relative 確保 modal 在 panel 內定位 */
 .panel-title { font-size: 20px; font-weight: 600; color: #2e2622; }
 .panel-hint { font-size: 13px; color: #6b7280; margin-top: 4px; margin-bottom: 10px; }
 .card-list { display: flex; flex-direction: column; gap: 10px; overflow-y: auto; padding-bottom: 10px; padding-right: 4px; } 
 
 /* 表格與按鈕 */
-.simple-table { width: 100%; border-collapse: collapse; margin-top: 6px; font-size: 13px; }
+.simple-table { 
+  width: 100%; 
+  border-collapse: collapse; 
+  margin-top: 6px; 
+  margin-bottom: 12px; 
+  font-size: 13px; 
+}
 .simple-table th, .simple-table td { border-bottom: 1px solid #e5e7eb; padding: 6px 6px; text-align: left; vertical-align: middle; }
 .simple-table th { background: #f9fafb; color: #4b5563; }
-.table-btn { border: none; padding: 3px 8px; border-radius: 6px; font-size: 11px; cursor: pointer; margin-right: 4px; font-family: "Iansui", sans-serif; background: #e5e7eb; color: #374151; transition: 0.2s; }
+
+.table-btn { 
+  border: none; padding: 5px 10px; border-radius: 6px; font-size: 12px; cursor: pointer; 
+  margin-right: 8px; margin-bottom: 6px; 
+  font-family: "Iansui", sans-serif; background: #e5e7eb; color: #374151; transition: 0.2s; display: inline-block; 
+}
 .table-btn:hover { background: #d1d5db; }
 .table-btn.outline { background: transparent; border: 1px solid #9ca3af; }
 .table-btn.danger { background: #fee2e2; color: #991b1b; }
@@ -412,6 +450,49 @@ const scrollToBottom = async () => { await nextTick(); if (chatContainerRef.valu
 .card { padding: 10px 12px 10px; border-radius: 12px; background: #fefbf7; border: 1px solid #e1d4c8; margin-bottom: 10px; }
 .card-title { font-size: 16px; font-weight: 600; color: #2e2622; }
 .card-sub { font-size: 13px; color: #6b7280; }
-.small-btn { border: none; padding: 4px 10px; border-radius: 999px; font-size: 12px; cursor: pointer; background: #e1d4c8; color: #2e2622; }
+
+.small-btn { border: none; padding: 4px 10px; border-radius: 999px; font-size: 12px; cursor: pointer; background: #e1d4c8; color: #2e2622; transition: 0.2s; }
 .small-btn.outline { background: transparent; border: 1px solid #a18c7b; color: #4a2c21; }
+.small-btn.primary { background: #a18c7b; color: white; }
+.small-btn.primary:hover { background: #8b7362; }
+
+.add-btn { 
+  display: block; 
+  width: 100%; 
+  margin-top: 8px; 
+  padding: 8px 0; 
+  font-weight: 600; 
+  font-size: 14px;
+}
+.add-btn:hover { background: #d3c2b1; }
+
+/* [新增] Modal 相關樣式 */
+.modal-overlay {
+  position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(0,0,0,0.4); z-index: 999;
+  display: flex; align-items: center; justify-content: center;
+  backdrop-filter: blur(2px);
+}
+.modal-box {
+  background: #fff; width: 90%; max-width: 350px;
+  padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  animation: popIn 0.2s ease;
+}
+@keyframes popIn {
+  from { transform: scale(0.9); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+.modal-title { font-size: 18px; font-weight: 600; color: #2e2622; margin-bottom: 4px; }
+.modal-sub { font-size: 13px; color: #6b7280; margin-bottom: 16px; }
+
+.form-group { margin-bottom: 12px; }
+.form-group label { display: block; font-size: 12px; color: #4b5563; margin-bottom: 4px; }
+.form-group input { 
+  width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px; 
+  font-family: "Iansui", sans-serif; box-sizing: border-box;
+}
+.form-group input:focus { border-color: #a18c7b; outline: none; }
+
+.modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
+.modal-actions button { padding: 6px 16px; font-size: 13px; }
 </style>
