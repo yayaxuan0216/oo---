@@ -21,7 +21,7 @@ admin.initializeApp({
 
 
 const db = admin.firestore();
-//db.settings({ databaseId: 'oo-base' }); // 如果您有自訂資料庫名稱
+db.settings({ databaseId: 'oo-base' }); 
 const bucket = admin.storage().bucket();
 
 module.exports = { db, admin, bucket };
