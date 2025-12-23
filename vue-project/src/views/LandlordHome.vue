@@ -8,7 +8,7 @@
 
       <div class="logo-area">
         <span class="logo-icon">🏠</span>
-        <span class="logo-text">CocoRoom 房東後台</span>
+        <span class="logo-text">房東後台</span>
       </div>
 
       <div class="header-placeholder"></div>
