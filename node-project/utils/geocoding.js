@@ -1,7 +1,7 @@
 const axios = require('axios');
 require('dotenv').config();
 
-const GOOGLE_API_KEY = process.env.GOOGLE_MAPS_API_KEY; 
+const GOOGLE_API_KEY = process.env.GOOGLE_MAPS_API_KEY;
 
 const getCoordinates = async (address) => {
   try {

@@ -4,6 +4,7 @@ const bodyParser = require('body-parser'); // 1. 確保有引入這行
 const authRoutes = require('./routes/auth'); 
 const rentalRoutes = require('./routes/rentals');
 const userRoutes = require('./routes/user');
+const appointmentRoutes = require('./routes/appointments');
 
 const app = express();
 
@@ -25,6 +26,7 @@ app.use(bodyParser.urlencoded({ limit: '10mb', extended: true }));
 app.use('/api', authRoutes);
 app.use('/api/rentals', rentalRoutes);
 app.use('/api/user', userRoutes);
+app.use('/api/appointments', appointmentRoutes);
 
 const PORT = 3000;
 app.listen(PORT, () => {
