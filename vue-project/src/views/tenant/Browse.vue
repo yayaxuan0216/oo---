@@ -152,7 +152,7 @@ const filters = reactive({
 
 onMounted(async () => {
   try {
-    const res = await fetch('https://oo-project.zeabur.app/api/rentals/public')
+    const res = await fetch(`${apiUrl}/api/rentals/public`)
     const json = await res.json()
     if (json.success) {
       rentals.value = json.data
