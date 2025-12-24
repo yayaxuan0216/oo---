@@ -158,6 +158,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router' // 3. 引入路由工具
+import api from '@/utils/api' // 1. 引入 api 工具
 
 const router = useRouter()
 const route = useRoute()
@@ -244,15 +245,9 @@ const registerToBackend = async () => {
     }
 
     // 2. 發送 POST 請求給 Node.js 後端 (Port 3000)
-    const response = await fetch(`${apiUrl}/api/register`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(payload)
-    })
+    const response = await api.post('/api/register', payload)
 
-    const data = await response.json()
+    const data = response.data
 
     if (data.success) {
       // 3. 成功：跳轉回登入頁

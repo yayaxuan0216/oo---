@@ -65,7 +65,7 @@
 // Script 部分維持原樣，不需要更動
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-
+import api from '@/utils/api'
 const router = useRouter()
 const defaultImage = 'https://cdn-icons-png.flaticon.com/512/609/609803.png'
 const rentals = ref([])
@@ -76,8 +76,8 @@ onMounted(async () => {
   const user = JSON.parse(userStr)
 
   try {
-    const res = await fetch(`${apiUrl}/api/rentals/list?landlordId=${user.id}`)
-    const json = await res.json()
+    const response = await api.get(`/api/rentals/list?landlordId=${user.id}`)
+    const json = response.data
     if (json.success) rentals.value = json.data
   } catch (e) { console.error(e) }
 })
@@ -87,12 +87,8 @@ const editRental = (id) => router.push(`/LandlordHome/rent/edit/${id}`)
 const deleteRental = async (id) => {
   if (!confirm('確定要刪除？')) return
   try {
-    const res = await fetch(`${apiUrl}/api/rentals/delete`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id })
-    })
-    const json = await res.json()
+    const response = await api.post('/api/rentals/delete', { id })
+    const json = response.data
     if (json.success) {
       rentals.value = rentals.value.filter(r => r.id !== id)
       alert('已刪除')

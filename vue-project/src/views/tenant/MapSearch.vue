@@ -75,6 +75,7 @@
 <script setup>
 import { ref, shallowRef, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import api from '@/utils/api' 
 
 const router = useRouter()
 const rentals = ref([]) // 存放後端抓回來的資料
@@ -90,8 +91,8 @@ const markers = shallowRef([])
 // 🟢 1. 從後端撈資料
 onMounted(async () => {
   try {
-    const res = await fetch(`${apiUrl}/api/rentals/public`)
-    const json = await res.json()
+    const response = await api.get('/api/rentals/public')
+    const json = response.data
 
     if (json.success) {
       // ✨ 資料處理：幫沒有經緯度的資料加上「隨機座標」(模擬在斗六)

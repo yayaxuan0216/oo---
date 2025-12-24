@@ -160,7 +160,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 // 👇 請確保已建立此元件
 import BookingModal from './components/BookingModal.vue'
-
+import api from '@/utils/api'
 const route = useRoute()
 const router = useRouter()
 
@@ -183,8 +183,8 @@ const currentUser = ref(null)
 onMounted(async () => {
   const rentalId = route.params.id
   try {
-    const res = await fetch(`${apiUrl}/api/rentals/${rentalId}`)
-    const json = await res.json()
+    const response = await api.get(`/api/rentals/${rentalId}`)
+    const json = response.data
     if (json.success) {
       rental.value = json.data
     } else {
@@ -232,9 +232,9 @@ const openLandlordModal = async () => {
   }
 
   try {
-    const res = await fetch(`${apiUrl}/api/user/${landlordId}`)
-    const json = await res.json()
-    
+    const response = await api.get(`/api/user/${landlordId}`)
+    const json = response.data
+
     if (json.success) {
       landlordInfo.value = json.data
       landlordInfo.value.id = landlordId

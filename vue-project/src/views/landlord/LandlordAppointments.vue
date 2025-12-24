@@ -126,6 +126,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import api from '@/utils/api'
 
 // --- 狀態變數 ---
 const appointments = ref([])
@@ -146,8 +147,8 @@ const fetchAppointments = async () => {
     const user = JSON.parse(localStorage.getItem('currentUser'))
     if (!user) return
 
-    const res = await fetch(`${apiUrl}/api/appointments/landlord/${user.id}`)
-    const json = await res.json()
+    const response = await api.get(`/api/appointments/landlord/${user.id}`)
+    const json = response.data
 
     if (json.success) {
       appointments.value = json.data
@@ -174,13 +175,12 @@ const sendMessage = async (id) => {
 
   try {
     // 呼叫 addMessage API
-    const res = await fetch(`${apiUrl}/api/appointments/${id}/message`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ role: 'landlord', message: msg }) // 👈 身份：房東
+    const response = await api.post(`/api/appointments/${id}/message`, {
+      role: 'landlord',
+      message: msg
     })
-    
-    if (res.ok) {
+
+    if (response.data.success) {
       // 成功後直接更新前端畫面，體驗比較順暢
       const target = appointments.value.find(i => i.id === id)
       if (target) {
@@ -223,13 +223,9 @@ const updateStatus = async (id, status) => {
 
   try {
     // 呼叫 updateAppointmentStatus API
-    const res = await fetch(`${apiUrl}/api/appointments/${id}/status`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    })
+    await api.post(`/api/appointments/${id}/status`, payload)
     
-    if (res.ok) {
+    if (response.data.success) {
       const target = appointments.value.find(i => i.id === id)
       if (target) {
         target.status = status
@@ -242,6 +238,7 @@ const updateStatus = async (id, status) => {
       alert(status === 'confirmed' ? '已接受並更新預約時間！' : '已婉拒預約')
     }
   } catch (e) { 
+    console.error(e)
     alert('操作失敗') 
   }
 }

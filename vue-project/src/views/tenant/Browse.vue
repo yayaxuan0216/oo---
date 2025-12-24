@@ -132,7 +132,7 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-
+import api from '@/utils/api'
 const router = useRouter()
 const rentals = ref([])
 const loading = ref(true)
@@ -152,8 +152,8 @@ const filters = reactive({
 
 onMounted(async () => {
   try {
-    const res = await fetch(`${apiUrl}/api/rentals/public`)
-    const json = await res.json()
+    const response = await api.get('/api/rentals/public')
+    const json = response.data
     if (json.success) {
       rentals.value = json.data
     }

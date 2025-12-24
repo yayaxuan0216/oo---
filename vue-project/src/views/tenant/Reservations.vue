@@ -64,7 +64,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-
+import api from '@/utils/api'
 const appointments = ref([])
 const isLoading = ref(true)
 const currentTab = ref('active')
@@ -75,52 +75,70 @@ const tabs = [
   { label: '歷史紀錄', value: 'history' }
 ]
 
+// 1. 取得我的預約 (GET)
 const fetchMyReservations = async () => {
   try {
     const user = JSON.parse(localStorage.getItem('currentUser'))
     if (!user) return
-    const res = await fetch(`${apiUrl}/api/appointments/tenant/${user.id}`)
-    const json = await res.json()
+
+    // 👇 改用 api.get，拿掉 apiUrl
+    const response = await api.get(`/api/appointments/tenant/${user.id}`)
+    
+    // 👇 資料直接在 .data 裡
+    const json = response.data
+    
     if (json.success) appointments.value = json.data
-  } catch (e) { console.error(e) } finally { isLoading.value = false }
+  } catch (e) { 
+    console.error(e) 
+  } finally { 
+    isLoading.value = false 
+  }
 }
 
+// 2. 傳送回覆 (POST)
 const sendReply = async (id) => {
   const msg = inputMap.value[id]
   if (!msg) return alert('請輸入內容')
 
   try {
-    const res = await fetch(`${apiUrl}/api/appointments/${id}/message`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ role: 'tenant', message: msg }) // 👈 身份是房客
+    await api.post(`/api/appointments/${id}/message`, { 
+      role: 'tenant', 
+      message: msg 
     })
 
-    if (res.ok) {
-      const target = appointments.value.find(i => i.id === id)
-      if (target) {
-        if (!target.history) target.history = []
-        target.history.push({ role: 'tenant', content: msg, createdAt: new Date().toISOString() })
-        target.status = 'negotiating'
-      }
-      inputMap.value[id] = ''
+    // Axios 如果成功會繼續往下執行 (失敗會跳 catch)，所以不用寫 if (res.ok)
+    const target = appointments.value.find(i => i.id === id)
+    if (target) {
+      if (!target.history) target.history = []
+      target.history.push({ role: 'tenant', content: msg, createdAt: new Date().toISOString() })
+      target.status = 'negotiating'
     }
-  } catch (e) { alert('發送失敗') }
+    inputMap.value[id] = ''
+    
+  } catch (e) { 
+    console.error(e)
+    alert('發送失敗') 
+  }
 }
 
+// 3. 取消預約 (POST)
 const cancelAppoint = async (id) => {
   if (!confirm('確定取消？')) return
+  
   try {
-    const res = await fetch(`${apiUrl}/api/appointments/${id}/status`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status: 'cancelled' })
+    // 👇 改用 api.post
+    await api.post(`/api/appointments/${id}/status`, { 
+      status: 'cancelled' 
     })
-    if (res.ok) {
-      const target = appointments.value.find(i => i.id === id)
-      if (target) target.status = 'cancelled'
-    }
-  } catch (e) { alert('操作失敗') }
+    
+    // 👇 成功後更新前端狀態
+    const target = appointments.value.find(i => i.id === id)
+    if (target) target.status = 'cancelled'
+    
+  } catch (e) { 
+    console.error(e)
+    alert('操作失敗') 
+  }
 }
 
 const filteredList = computed(() => {

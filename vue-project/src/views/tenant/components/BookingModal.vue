@@ -38,7 +38,7 @@
 
 <script setup>
 import { ref } from 'vue'
-
+import api from '@/utils/api'
 // 接收父元件傳來的資料
 const props = defineProps({
   rental: Object, // 房源資訊 (包含 id, title, landlordId)
@@ -52,6 +52,7 @@ const isSubmitting = ref(false)
 const bookingForm = ref({ date: '', time: '', message: '' })
 const minDate = new Date().toISOString().split('T')[0]
 
+
 const submitBooking = async () => {
   if (!bookingForm.value.date || !bookingForm.value.time) {
     alert('請填寫日期與時間！')
@@ -62,20 +63,16 @@ const submitBooking = async () => {
     isSubmitting.value = true
     
     // 呼叫後端 API
-    const res = await fetch(`${apiUrl}/api/appointments/create`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        rentalId: props.rental.id,
-        rentalTitle: props.rental.title,
-        landlordId: props.rental.landlordId,
-        tenantId: props.user.id,
-        tenantName: props.user.name || props.user.email,
-        ...bookingForm.value
-      })
-    })
+    const response = await api.post('/api/appointments/create', {
+    rentalId: props.rental.id,
+    rentalTitle: props.rental.title,
+    landlordId: props.rental.landlordId,
+    tenantId: props.user.id,
+    tenantName: props.user.name || props.user.email,
+    ...bookingForm.value // 把表單資料展開放進去
+  })
 
-    const json = await res.json()
+    const json = await response.data
 
     if (json.success) {
       alert('✅ 預約請求已發送！請等待房東確認。')

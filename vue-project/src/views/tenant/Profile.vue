@@ -63,7 +63,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 // 請確認此路徑是否正確指向您的 ProfileInfo 組件
 import ProfileInfo from './components/ProfileInfo.vue'
-
+import api from '@/utils/api'
 const router = useRouter()
 
 // 預設頭貼 (如果使用者沒設頭貼，就顯示這張)
@@ -141,15 +141,9 @@ const handleSave = async () => {
   }
 
   try {
-    const response = await fetch(`${apiUrl}/api/update-profile`, {
-      method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json' 
-      },
-      body: JSON.stringify(payload)
-    })
+    const response = await api.post('/api/update-profile', payload)
 
-    const data = await response.json()
+    const data = response.data
 
     if (data.success) {
       alert('✅ 資料與頭貼已成功更新！')

@@ -95,18 +95,14 @@ const handleSubmit = async () => {
     const user = JSON.parse(userStr)
 
     // 發送請求
-    const response = await fetch(`${apiUrl}/api/change-password`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        userId: user.id,       // 誰要改密碼
-        role: user.role,       // 查哪張表
-        oldPassword: form.value.oldPassword, // 傳舊密碼給後端檢查
-        newPassword: form.value.newPassword  // 傳新密碼給後端寫入
-      })
+    const response = await api.post('/api/change-password', {
+      userId: user.id,
+      role: user.role,
+      oldPassword: form.value.oldPassword,
+      newPassword: form.value.newPassword
     })
 
-    const data = await response.json()
+    const data = response.data
 
     if (data.success) {
       alert('✅ 密碼修改成功！請重新登入。')

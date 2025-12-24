@@ -57,7 +57,7 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-
+import api from '@/utils/api'
 const router = useRouter()
 
 const username = ref('')
@@ -75,20 +75,16 @@ const handleLogin = async () => {
     alert('請先選擇身分')
     return
   }
-
+  
   try {
     // 1. 呼叫後端 API
-    const response = await fetch(`${apiUrl}/api/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
+    const response = await api.post('/api/login', {
         username: username.value,
         password: password.value,
         role: loginRole.value
-      })
     })
 
-    const data = await response.json()
+    const data = response.data
 
     if (data.success) {
       // 2. ✨ 關鍵步驟：把使用者資料存入 localStorage

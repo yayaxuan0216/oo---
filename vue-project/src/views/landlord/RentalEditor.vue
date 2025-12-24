@@ -125,7 +125,7 @@
 <script setup>
 import { ref, reactive, onMounted, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-
+import api from '@/utils/api'
 const router = useRouter()
 const route = useRoute()
 
@@ -156,8 +156,8 @@ const isEditMode = computed(() => !!route.params.id)
 onMounted(async () => {
   // 1. 抓取設施選項
   try {
-    const res = await fetch(`${apiUrl}/api/rentals/amenities`)
-    const json = await res.json()
+    const response = await api.get('/api/rentals/amenities')
+    const json = response.data
     if (json.success) {
       amenityOptions.value = json.data
     }
@@ -170,8 +170,8 @@ onMounted(async () => {
   if (isEditMode.value) {
     const rentalId = route.params.id
     try {
-      const res = await fetch(`${apiUrl}/api/rentals/${rentalId}`)
-      const json = await res.json()
+      const response = await api.get(`/api/rentals/${rentalId}`)
+      const json = response.data
       if (json.success) {
         Object.assign(form, json.data)
       } else {
@@ -245,17 +245,13 @@ const handleSave = async () => {
   }
   
   try {
-    const url = isEditMode.value 
-      ? `${apiUrl}/api/rentals/update`
-      : `${apiUrl}/api/rentals/add`
+    const url = isEditMode.value
+      ? '/api/rentals/update'
+      : '/api/rentals/add'
 
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    })
+    const response = await api.post(url, payload)
 
-    const data = await response.json()
+    const data = response.data
     
     if (data.success) {
       alert(isEditMode.value ? '✅ 修改成功！' : '🎉 新增成功！')

@@ -111,7 +111,7 @@
 
 <script setup>
 import { ref, reactive } from 'vue'
-
+import api from '@/utils/api'
 const currentTab = ref('pending')
 const showPdfModal = ref(false)
 const currentPdfUrl = ref('')
@@ -208,17 +208,12 @@ const confirmSignature = async () => {
     
     // 2. 呼叫剛剛寫好的後端 API
     // 注意：這裡假設你的後端是 localhost:3000
-    const response = await fetch(`${apiUrl}/api/contracts/${currentSigningItem.value.id}/sign`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        signatureImage: data // 把整串 Base64 丟給後端
-      })
+    const response = await api.put(`/api/contracts/${currentSigningItem.value.id}/sign`, {
+    signatureImage: data
     })
+    const resData = response.data
 
-    if (response.ok) {
+    if (resData.success) {
       // 3. 成功後更新畫面
       alert('🎉 簽約成功！合約已生效。')
       
@@ -230,7 +225,7 @@ const confirmSignature = async () => {
       location.reload() 
       
     } else {
-      alert('簽約失敗，請檢查後端是否開啟')
+      alert('簽約失敗:'+ resData.message || '請檢查後端')
     }
 
   } catch (error) {

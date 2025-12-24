@@ -99,7 +99,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-
+import api from '@/utils/api'
 const searchKeyword = ref('')
 const searchListings = ref([]) // 改成空陣列，等待後端資料填入
 const isLoading = ref(false)   // 加一個讀取中的狀態
@@ -116,8 +116,8 @@ const fetchPublicRentals = async () => {
     const userStr = localStorage.getItem('currentUser')
     const currentUser = userStr ? JSON.parse(userStr) : null
 
-    const res = await fetch(`${apiUrl}/api/rentals/public`)
-    const json = await res.json()
+    const response = await api.get('/api/rentals/public')
+    const json = response.data
 
     if (json.success) {
       // 2. ✨ 關鍵修改：過濾掉自己的租件

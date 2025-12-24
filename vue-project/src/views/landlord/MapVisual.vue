@@ -60,7 +60,7 @@ const fetchMyRentals = async () => {
     const user = JSON.parse(userStr)
     console.log('👤 [Debug] 當前登入 ID:', user.id)
 
-    const res = await fetch(`${apiUrl}/api/rentals/list?landlordId=${user.id}`)
+    const res = await fetch(`/api/rentals/list?landlordId=${user.id}`)
     const json = await res.json()
 
     if (json.success) {

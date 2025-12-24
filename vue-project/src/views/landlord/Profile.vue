@@ -93,6 +93,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import api from '@/utils/api'
 
 const router = useRouter()
 const isSaving = ref(false) // 儲存狀態
@@ -131,8 +132,8 @@ onMounted(async () => {
       // 2. ✨ 呼叫後端 API 取得最新的資料 (包含 bio)
       try {
         // 使用我們剛剛建立的 user API
-        const res = await fetch(`${apiUrl}/api/user/${user.id}`)
-        const json = await res.json()
+        const response = await api.get(`/api/user/${user.id}`)
+        const json = response.data
         
         if (json.success) {
           // 更新資料 (以資料庫為準)
@@ -185,14 +186,10 @@ const handleSave = async () => {
   }
 
   try {
-    // ⚠️ 注意：這裡改成我們剛剛在後端建立的 API 路徑 /api/user/update
-    const response = await fetch(`${apiUrl}/api/user/update`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    })
+    
+    const response = await api.post('/api/user/update', payload)
 
-    const data = await response.json()
+    const data = response.data
 
     if (data.success) {
       alert('✅ 房東資料已更新！')
@@ -206,7 +203,6 @@ const handleSave = async () => {
           name: profile.value.name,
           email: profile.value.email,
           avatar: profile.value.avatar
-          // LocalStorage 通常不存 bio 以免太肥，bio 靠 API 抓就好
         }
         localStorage.setItem('currentUser', JSON.stringify(updatedUser))
       }
