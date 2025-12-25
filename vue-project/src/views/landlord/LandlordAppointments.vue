@@ -223,8 +223,9 @@ const updateStatus = async (id, status) => {
 
   try {
     // 呼叫 updateAppointmentStatus API
-    await api.post(`/api/appointments/${id}/status`, payload)
-    
+
+    const response = await api.post(`/api/appointments/${id}/status`, payload)
+
     if (response.data.success) {
       const target = appointments.value.find(i => i.id === id)
       if (target) {
