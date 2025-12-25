@@ -200,7 +200,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import axios from 'axios'
+import api from '@/utils/api'
 import { VueSignaturePad } from 'vue-signature-pad'
 
 const leases = ref([])
@@ -237,7 +237,7 @@ onMounted(() => {
 const fetchLeases = async () => {
   try {
     loading.value = true
-    const res = await axios.get('http://localhost:3000/api/contracts')
+    const res = await api.get('/api/contracts')
     leases.value = res.data.map(doc => ({
       id: doc.id,
       rentalTitle: doc.rentalTitle || `房源 ${doc.roomId || ''}`,
@@ -261,8 +261,8 @@ const fetchRentals = async () => {
   if (!userStr) return
   const user = JSON.parse(userStr)
   try {
-    const res = await fetch(`https://oo-project.zeabur.app/api/rentals/list?landlordId=${user.id}`)
-    const json = await res.json()
+    const response = await api.get(`/api/rentals/list?landlordId=${user.id}`)
+    const json = await response.json()
     if (json.success) rentalOptions.value = json.data
   } catch (e) {
     console.error("房源讀取失敗:", e)
@@ -292,7 +292,9 @@ const onRentalSelect = async () => {
 const fetchRoomTenants = async (rentalId) => {
   try {
     loadingTenants.value = true
-    const res = await axios.get('http://localhost:3000/api/room-tenants', { params: { rentalId } })
+    const res = await api.get('/api/room-tenants', { 
+      params: { rentalId } 
+    })
     tenantOptions.value = res.data
     if (tenantOptions.value.length === 1) {
       tempLeaseForm.value.tenantName = tenantOptions.value[0].name
@@ -357,7 +359,7 @@ const confirmAddLease = async () => {
   }
 
   try {
-    const res = await axios.post('http://localhost:3000/api/contracts', payload)
+    const res = await api.post('/api/contracts', payload)
     const { pdfUrl } = res.data
     alert("租約建立成功！正在為您開啟合約 PDF...")
     if (pdfUrl) window.open(pdfUrl, '_blank')
@@ -392,7 +394,7 @@ const handleFileUpload = async (event) => {
     reader.readAsDataURL(file)
     reader.onload = async () => {
       const base64String = reader.result
-      await axios.put(`http://localhost:3000/api/contracts/${uploadingLeaseId.value}/update-pdf`, {
+      await api.put(`/api/contracts/${uploadingLeaseId.value}/update-pdf`, {
         pdfBase64: base64String
       })
       alert('✅ 更新成功！')
@@ -420,7 +422,7 @@ const confirmSignature = async () => {
   if (isEmpty) return alert('請先簽名！')
   try {
     alert("處理中...")
-    await axios.put(`http://localhost:3000/api/contracts/${currentLeaseId.value}/landlord-sign`, {
+    await api.put(`/api/contracts/${currentLeaseId.value}/landlord-sign`, {
       signatureImage: data
     })
     alert("簽署完成！合約已生效。")

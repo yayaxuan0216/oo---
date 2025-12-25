@@ -91,7 +91,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import axios from 'axios'
+import api from '@/utils/api'
 import { VueSignaturePad } from 'vue-signature-pad'
 
 const contracts = ref([])
@@ -120,7 +120,7 @@ const fetchContracts = async () => {
     loading.value = true
     // 這裡我們暫時抓全部合約，然後在前端過濾 (比較簡單的解法)
     // 如果後端有寫 GET /api/my-contracts?tenantId=xxx 會更好
-    const res = await axios.get('http://localhost:3000/api/contracts')
+    const res = await api.get('/api/contracts')
     
     // ★★★ 關鍵篩選邏輯 ★★★
     // 只保留 tenantId 等於 目前使用者 ID 的合約
@@ -180,8 +180,8 @@ const submitSignature = async () => {
   try {
     loading.value = true // 顯示讀取中(建議加個 loading 變數控制畫面)
     
-    // 2. 呼叫剛剛寫好的後端 API
-    await axios.put(`http://localhost:3000/api/contracts/${selectedContractId.value}/tenant-sign`, {
+    // 2. 呼叫後端 API
+    await api.put(`/api/contracts/${selectedContractId.value}/tenant-sign`, {
       signatureImage: data // 送出 Base64 圖片
     })
 
