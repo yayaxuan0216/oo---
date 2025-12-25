@@ -6,6 +6,8 @@ const { db } = require('./firebaseConfig');
 const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/user');
 const contractRoutes = require('./routes/contracts');
+const rentalRoutes = require('./routes/rentals');
+const appointmentRoutes = require('./routes/appointments');
 
 const app = express();
 app.use(cors());
@@ -14,6 +16,8 @@ app.use(express.json({ limit: '50mb' }));
 app.use('/api', authRoutes);
 app.use('/api', contractRoutes);
 app.use('/api', userRoutes);
+app.use('/api', rentalRoutes);
+app.use('/api', appointmentRoutes);
 
 
 app.get('/api/room-tenants', async (req, res) => {
