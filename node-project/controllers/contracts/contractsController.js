@@ -96,30 +96,42 @@ const getContracts = async (req, res) => {
     // 1. 取得前端傳來的查詢參數
     const { landlordId, tenantId } = req.query;
 
+    // 2. 建立一個基本的查詢物件 (還沒開始查)
     let query = db.collection('contracts');
 
-    // 2. 如果有傳 landlordId，就只抓該房東的資料
+    // 3. 判斷邏輯：動態加入查詢條件
     if (landlordId) {
+      console.log('🔍 正在搜尋房東 ID:', landlordId);
       query = query.where('landlordId', '==', landlordId);
-    }
-    // 3. (選用) 如果未來要給房客看，也可以過濾房客 ID
+    } 
     else if (tenantId) {
+      console.log('🔍 正在搜尋房客 ID:', tenantId);
       query = query.where('tenantId', '==', tenantId);
+    } 
+    else {
+      // 💥 安全機制：如果兩個 ID 都沒傳，直接回傳空陣列，不要去撈整個資料庫
+      console.warn('⚠️ 警告：沒有提供 ID，不執行查詢');
+      return res.json([]);
     }
 
-    // 4. 執行查詢 (加上排序讓新的在上面)
-    // 注意：如果有 where 和 orderBy 混用，Firebase 可能會要求建立索引(Index)，這很正常
-    const snapshot = await db.collection('contracts')
-  .where('landlordId', '==', landlordId)
-  .get();
+    // 4. ★★★ 關鍵修改：使用上面設定好的 `query` 變數來 .get() ★★★
+    // (如果想要排序，可以加在 .get() 之前，例如 query.orderBy('createdAt', 'desc').get())
+    const snapshot = await query.get();
+
+    if (snapshot.empty) {
+        return res.json([]); // 查無資料
+    }
 
     const leases = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     res.json(leases);
+
   } catch (error) {
     console.error("讀取失敗:", error);
     res.status(500).json({ error: error.message });
   }
 };
+
+module.exports = getContracts;
 
 // 建立新租約 (生成 PDF)
 const createContract = async (req, res) => {

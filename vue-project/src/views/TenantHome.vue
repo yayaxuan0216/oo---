@@ -47,6 +47,9 @@
           <router-link to="/TenantHome/contracts" class="drawer-item" @click="toggleMenu">
             <span class="icon">✍️</span> 租約簽訂
           </router-link>
+          <router-link to="/TenantHome/living" class="drawer-item" @click="toggleMenu">
+            <span class="icon">🏠</span> 我的租屋
+          </router-link>
           <router-link to="/TenantHome/profile" class="drawer-item" @click="toggleMenu">
             <span class="icon">👤</span> 個人資料
           </router-link>

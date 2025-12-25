@@ -56,7 +56,7 @@ const router = createRouter({
                 {
                     path: 'tenant',
                     name: 'LandlordTenant',
-                    component: () => import('../views/landlord/Tenants.vue')
+                    component: () => import('../views/landlord/tenants/TenantManager.vue')
                 },
                 {
                     path: 'search',
@@ -78,6 +78,11 @@ const router = createRouter({
                     name: 'LandlordAppointments',
                     component: () => import('../views/landlord/LandlordAppointments.vue')
                 },
+                {
+                    path:'tenants',
+                    name: 'LandlordTenants',
+                    component: () => import('../views/landlord/tenants/TenantManager.vue')
+                }
             ]
         },
         // 公開頁面 (不用登入)
@@ -138,6 +143,11 @@ const router = createRouter({
                     path: 'map',
                     name: 'TenantMap',
                     component: () => import('../views/tenant/MapSearch.vue')
+                },
+                {
+                    path: 'living',
+                    name: 'LivingManager',
+                    component: () => import('../views/tenant/LivingManager.vue')
                 }
             ]
         }

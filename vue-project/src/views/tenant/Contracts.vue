@@ -118,11 +118,8 @@ onMounted(() => {
 const fetchContracts = async () => {
   try {
     loading.value = true
-    // 這裡我們暫時抓全部合約，然後在前端過濾 (比較簡單的解法)
-    // 如果後端有寫 GET /api/my-contracts?tenantId=xxx 會更好
-    const res = await api.get('/api/contracts')
-    // ★★★ 關鍵篩選邏輯 ★★★
-    // 只保留 tenantId 等於 目前使用者 ID 的合約
+    const res = await api.get(`/api/contracts?tenantId=${currentUser.value.id}`)
+
     const myContracts = res.data.filter(c => c.tenantId === currentUser.value.id)
     
     contracts.value = myContracts.map(c => ({
