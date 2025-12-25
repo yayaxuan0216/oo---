@@ -14,7 +14,7 @@ app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 
 app.use('/api/auth', authRoutes);
-app.use('/api/contracts', contractRoutes);
+app.use('/api', contractRoutes);
 app.use('/api/user', userRoutes);
 app.use('/api/rentals', rentalRoutes);
 app.use('/api/appointments', appointmentRoutes);
