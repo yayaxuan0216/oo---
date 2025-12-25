@@ -2,7 +2,7 @@
 
 const { db } = require('../../firebaseConfig');
 const uploadImage = require('../../utils/uploadImage');
-const getCoordinates = require('../../utils/geocoding'); // ✨ 引入剛剛寫的工具
+const getCoordinates = require('../../utils/geocoding');
 
 const addRental = async (req, res) => {
   try {
@@ -12,8 +12,6 @@ const addRental = async (req, res) => {
       description, images, isPublished 
     } = req.body;
 
-    // ... (原本的圖片上傳邏輯 images 轉換，保持不變) ...
-    // let imageUrls = ...
 
     // ✨✨✨ 新增這段：轉換經緯度 ✨✨✨
     let coordinates = { lat: 23.705, lng: 120.430 }; // 預設值 (斗六)，以防轉換失敗
