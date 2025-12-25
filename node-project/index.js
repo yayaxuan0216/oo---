@@ -16,7 +16,7 @@ app.use(express.json({ limit: '50mb' }));
 app.use('/api', authRoutes);
 app.use('/api', contractRoutes);
 app.use('/api', userRoutes);
-app.use('/api', rentalRoutes);
+app.use('/api/rentals', rentalRoutes);
 app.use('/api', appointmentRoutes);
 
 
