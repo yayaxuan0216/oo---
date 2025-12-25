@@ -9,6 +9,7 @@ const appointmentRoutes = require('./routes/appointments');
 const contractsRoutes = require('./routes/contracts');
 const landlordRoutes = require('./routes/landlord');
 const tenantPortalRoutes = require('./routes/tenantPortal');
+const chatRoutes = require('./routes/chat');
 const app = express();
 
 // ==========================================
@@ -34,6 +35,7 @@ app.use('/api/appointments', appointmentRoutes);
 app.use('/api/contracts', contractsRoutes);
 app.use('/api/landlord', landlordRoutes);
 app.use('/api/tenant/portal', tenantPortalRoutes);
+app.use('/api/landlord/chat', chatRoutes);
 
 const port = process.env.PORT || 3000;
 

@@ -21,7 +21,7 @@
         <button :class="['tab-btn', currentTab === 'bills' ? 'active' : '']" @click="currentTab = 'bills'">
           💰 帳務水電
         </button>
-        <button :class="['tab-btn', currentTab === 'chat' ? 'active' : '']" @click="currentTab = 'chat'">
+        <button :class="['tab-btn', currentTab === 'chat' ? 'active' : '']" @click="switchTab('chat')">
           💬 聯絡房東
         </button>
       </div>
@@ -72,13 +72,27 @@
       </div>
 
       <div v-if="currentTab === 'chat'" class="content-area chat-area">
-        <div class="chat-header-hint">正在聯絡：{{ currentRental.rentalTitle }} 的房東</div>
-        <div class="chat-messages">
-             <div class="msg other"><div class="bubble">您好，這裡是 {{ currentRental.rentalTitle }}</div></div>
+        <div class="chat-header-hint">
+          <span>與房東聯絡中</span>
+          <button class="icon-btn" @click="fetchMessages" title="重新整理">🔄</button>
         </div>
+
+        <div class="chat-messages" ref="chatBoxRef">
+          <div v-if="chatMessages.length === 0" class="empty-msg">
+            有問題嗎？傳個訊息給房東吧！👋
+          </div>
+          
+          <div v-for="(msg, idx) in chatMessages" :key="idx" :class="['msg', msg.isMe ? 'me' : 'other']">
+            <div class="bubble">
+              <div class="txt">{{ msg.text }}</div>
+              <div class="time">{{ formatTime(msg.createdAt) }}</div>
+            </div>
+          </div>
+        </div>
+
         <div class="chat-input-box">
-             <input type="text" placeholder="傳送訊息..." v-model="msgInput">
-             <button @click="sendMsg">傳送</button>
+             <input type="text" placeholder="輸入訊息..." v-model="msgInput" @keyup.enter="sendMsg">
+             <button @click="sendMsg" :disabled="sending">傳送</button>
         </div>
       </div>
     
@@ -87,26 +101,38 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, nextTick } from 'vue'
 import api from '@/utils/api'
 
 const currentTab = ref('bills')
 const loading = ref(false)
-const msgInput = ref('')
 const allRentals = ref([])
 const currentIndex = ref(0)
+
+// 聊天相關變數
+const msgInput = ref('')
+const chatMessages = ref([])
+const sending = ref(false)
+const chatBoxRef = ref(null)
+
 const currentUser = JSON.parse(localStorage.getItem('currentUser'))
+
+// Helper: 取得使用者 ID (相容 uid/id)
+const getUserId = () => currentUser ? (currentUser.uid || currentUser.id) : null
 
 const currentRental = computed(() => {
   if (allRentals.value.length === 0) return null
   return allRentals.value[currentIndex.value]
 })
 
+// 初始化載入租屋資訊
 const fetchLivingInfo = async () => {
-  if (!currentUser || !currentUser.id) return
+  const uid = getUserId()
+  if (!uid) return
+  
   try {
     loading.value = true
-    const res = await api.get(`/api/tenant/portal/info?uid=${currentUser.id}`)
+    const res = await api.get(`/api/tenant/portal/info?uid=${uid}`)
     if (res.data.success) {
       allRentals.value = res.data.data
       currentIndex.value = 0
@@ -118,30 +144,99 @@ const fetchLivingInfo = async () => {
   }
 }
 
-// ✨ 新增：更新備註 API 呼叫
+// ✨ 切換分頁邏輯
+const switchTab = (tab) => {
+  currentTab.value = tab
+  if (tab === 'chat') {
+    fetchMessages()
+  }
+}
+
+// ✨ 1. 讀取訊息
+const fetchMessages = async () => {
+  const uid = getUserId()
+  if (!uid || !currentRental.value) return
+
+  try {
+    const res = await api.get('/api/tenant/portal/chat/history', {
+      params: {
+        senderId: uid, 
+        receiverId: currentRental.value.landlordId, // 房東 ID
+        role: 'tenant' // ⚠️ 關鍵：告訴後端我是房客
+      }
+    })
+
+    if (res.data.success) {
+      chatMessages.value = res.data.data.map(msg => ({
+        ...msg,
+        isMe: msg.senderId === uid // 判斷是否為自己發的
+      }))
+      scrollToBottom()
+    }
+  } catch (error) {
+    console.error('載入訊息失敗', error)
+  }
+}
+
+// ✨ 2. 發送訊息
+const sendMsg = async () => {
+  if (!msgInput.value.trim() || sending.value) return
+  
+  const text = msgInput.value
+  msgInput.value = ''
+  sending.value = true
+
+  const uid = getUserId()
+
+  try {
+    await api.post('/api/tenant/portal/chat/send', {
+      senderId: uid,
+      receiverId: currentRental.value.landlordId,
+      message: text,
+      senderRole: 'tenant' // ⚠️ 關鍵
+    })
+
+    // 發送成功後重新抓取
+    await fetchMessages()
+
+  } catch (error) {
+    console.error('發送失敗', error)
+    alert('發送失敗')
+    msgInput.value = text
+  } finally {
+    sending.value = false
+  }
+}
+
+// 帳單備註更新
 const updateMyNote = async (month, value) => {
-  // 樂觀更新：先更新畫面上的資料避免跳動
   const rental = allRentals.value[currentIndex.value]
   const targetBill = rental.bills.find(b => b.month === month)
   if (targetBill) targetBill.note = value
 
+  const uid = getUserId()
   try {
     await api.post('/api/tenant/portal/note', {
-      uid: currentUser.id,
+      uid: uid,
       month: month,
       note: value
     })
-    console.log('備註更新成功')
   } catch (error) {
     console.error('更新備註失敗', error)
-    alert('儲存失敗，請檢查網路')
   }
 }
 
-const sendMsg = () => {
-  if (!msgInput.value.trim() || !currentRental.value) return
-  alert(`傳送給房東 (${currentRental.value.landlordId}): ${msgInput.value}`)
-  msgInput.value = ''
+const scrollToBottom = async () => {
+  await nextTick()
+  if (chatBoxRef.value) {
+    chatBoxRef.value.scrollTop = chatBoxRef.value.scrollHeight
+  }
+}
+
+const formatTime = (dateStr) => {
+  if (!dateStr) return ''
+  const d = new Date(dateStr)
+  return `${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`
 }
 
 onMounted(() => {
@@ -150,6 +245,7 @@ onMounted(() => {
 </script>
 
 <style scoped>
+/* 您的原始樣式 (完全保留) */
 .living-container { max-width: 600px; margin: 0 auto; padding: 16px; background: #fffdf9; min-height: 90vh; }
 .header { text-align: center; margin-bottom: 20px; }
 .rental-select { font-size: 18px; font-weight: bold; padding: 8px; border: 1px solid #a18c7b; border-radius: 8px; color: #4a2c21; background: white; width: 100%; max-width: 300px; text-align: center; margin-bottom: 8px; font-family: "Iansui", sans-serif; }
@@ -158,7 +254,7 @@ onMounted(() => {
 .tab-btn { flex: 1; padding: 12px; background: none; border: none; font-size: 15px; font-weight: 600; color: #9ca3af; cursor: pointer; }
 .tab-btn.active { color: #a18c7b; border-bottom: 3px solid #a18c7b; margin-bottom: -2px; }
 
-/* 帳單卡片 */
+/* 帳單樣式 */
 .bill-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 16px; margin-bottom: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.03); }
 .bill-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px dashed #eee; padding-bottom: 8px; }
 .month { font-size: 18px; font-weight: 700; color: #374151; font-family: monospace; }
@@ -170,22 +266,34 @@ onMounted(() => {
 .item .label { color: #6b7280; margin-bottom: 4px; }
 .check { color: #10b981; font-weight: 600; font-size: 15px; }
 .cross { color: #ef4444; font-weight: 600; font-size: 15px; }
-
-/* ✨ 備註輸入框樣式 */
 .bill-note-section { background: #fdfdfd; border: 1px solid #f0f0f0; padding: 8px 12px; border-radius: 8px; }
 .note-label { font-size: 12px; color: #888; margin-bottom: 4px; }
 .tenant-note-input { width: 100%; border: none; background: transparent; font-size: 14px; color: #4b5563; border-bottom: 1px dashed #ddd; padding: 4px 0; outline: none; }
 .tenant-note-input:focus { border-bottom-color: #a18c7b; }
 
+/* 聊天樣式 */
 .chat-area { display: flex; flex-direction: column; height: 50vh; }
-.chat-messages { flex: 1; overflow-y: auto; padding: 10px; background: #f3f4f6; border-radius: 8px; margin-bottom: 10px; }
-.msg { display: flex; margin-bottom: 8px; }
+.chat-header-hint { display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: #666; margin-bottom: 8px; }
+.icon-btn { border: none; background: none; cursor: pointer; font-size: 14px; padding: 4px; }
+
+.chat-messages { flex: 1; overflow-y: auto; padding: 10px; background: #f3f4f6; border-radius: 8px; margin-bottom: 10px; display: flex; flex-direction: column; gap: 8px; }
+.empty-msg { text-align: center; color: #999; margin-top: 20px; font-size: 13px; }
+
+.msg { display: flex; width: 100%; }
 .msg.me { justify-content: flex-end; }
-.msg .bubble { padding: 8px 12px; border-radius: 12px; background: #fff; border: 1px solid #e5e7eb; max-width: 80%; font-size: 14px; }
+.msg.other { justify-content: flex-start; }
+
+.msg .bubble { max-width: 80%; padding: 8px 12px; border-radius: 12px; background: #fff; border: 1px solid #e5e7eb; position: relative; }
 .msg.me .bubble { background: #a18c7b; color: white; border: none; }
+
+.msg .txt { font-size: 14px; line-height: 1.4; word-break: break-all; }
+.msg .time { font-size: 10px; opacity: 0.7; text-align: right; margin-top: 2px; }
+
 .chat-input-box { display: flex; gap: 8px; }
 .chat-input-box input { flex: 1; padding: 10px; border-radius: 99px; border: 1px solid #d1d5db; outline: none; }
-.chat-input-box button { background: #a18c7b; color: white; border: none; padding: 0 20px; border-radius: 99px; }
+.chat-input-box button { background: #a18c7b; color: white; border: none; padding: 0 20px; border-radius: 99px; cursor: pointer; }
+.chat-input-box button:disabled { background: #ccc; }
+
 .empty-state { text-align: center; color: #999; margin-top: 20px; }
 .loading { text-align: center; padding: 20px; color: #666; }
 </style>

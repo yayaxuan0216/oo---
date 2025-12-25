@@ -5,7 +5,7 @@
       <span class="header-main-text">{{ tenant.name }}</span>
       <span class="header-sub-text">{{ tenant.rentalTitle }}</span>
     </div>
-    <button class="small-btn icon-btn" @click="fetchMessages" title="重新整理">🔄</button>
+    <button class="small-btn icon-btn" @click="fetchMessages" title="重新整理訊息">🔄</button>
   </div>
 
   <div class="chat-container" ref="chatContainerRef">
@@ -36,9 +36,8 @@
 </template>
 
 <script setup>
-import { ref, nextTick, onMounted } from 'vue'
+import { ref, nextTick, onMounted, computed } from 'vue'
 import api from '@/utils/api'
-
 
 const props = defineProps(['tenant'])
 defineEmits(['back'])
@@ -49,20 +48,39 @@ const chatMessages = ref([])
 const loading = ref(false)
 const sending = ref(false)
 
-const currentUser = JSON.parse(localStorage.getItem('currentUser'))
+// ✨✨✨ 1. 強化 ID 取得邏輯 (修復 undefined 錯誤) ✨✨✨
+const getLandlordId = () => {
+  try {
+    const raw = localStorage.getItem('currentUser')
+    if (!raw) return null
+    const user = JSON.parse(raw)
+    // 相容 uid 或 id 兩種寫法
+    return user.uid || user.id || null
+  } catch (e) {
+    console.error('解析使用者資料失敗', e)
+    return null
+  }
+}
 
-// 1. 透過 API 取得訊息
+// 取得當前房東 ID
+const currentUserId = getLandlordId()
+
+// 取得目標房客 ID (同樣做相容處理)
+const tenantId = computed(() => props.tenant.uid || props.tenant.id)
+
+// ✨✨✨ 2. 透過 API 取得訊息 ✨✨✨
 const fetchMessages = async () => {
-  if (!currentUser || !props.tenant.uid) return
+  if (!currentUserId || !tenantId.value) return
   
   // 只有第一次載入時顯示 Loading，手動重新整理時不顯示
   if (chatMessages.value.length === 0) loading.value = true
   
   try {
-    const res = await api.get('/api/chat/history', {
+    // ✅ 路徑已修正為 /api/landlord/chat/history
+    const res = await api.get('/api/landlord/chat/history', {
       params: {
-        senderId: currentUser.uid,
-        receiverId: props.tenant.uid,
+        senderId: currentUserId,
+        receiverId: tenantId.value,
         role: 'landlord'
       }
     })
@@ -71,40 +89,47 @@ const fetchMessages = async () => {
       chatMessages.value = res.data.data.map(msg => ({
         ...msg,
         // 判斷是否為自己發的
-        isMe: msg.senderId === currentUser.uid
+        isMe: msg.senderId === currentUserId
       }))
       scrollToBottom()
     }
   } catch (error) {
-    console.error('載入失敗', error)
+    console.error('載入訊息失敗', error)
   } finally {
     loading.value = false
   }
 }
 
-// 2. 發送訊息
+// ✨✨✨ 3. 發送訊息 ✨✨✨
 const sendMessage = async () => {
   if (!inputMessage.value.trim() || sending.value) return
+
+  // 🚨 安全檢查：如果沒有 ID，就不要送出請求
+  if (!currentUserId) {
+    alert('身分驗證失效，請重新登入')
+    return
+  }
 
   const textToSend = inputMessage.value
   inputMessage.value = '' 
   sending.value = true
 
   try {
-    await api.post('/api/chat/send', {
-      senderId: currentUser.uid,
-      receiverId: props.tenant.uid,
+    // ✅ 路徑已修正為 /api/landlord/chat/send
+    await api.post('/api/landlord/chat/send', {
+      senderId: currentUserId,
+      receiverId: tenantId.value,
       message: textToSend,
       senderRole: 'landlord'
     })
     
-    // ✨ 發送成功後，立刻重新抓取一次最新訊息
+    // 發送成功後，立刻重新抓取一次最新訊息
     await fetchMessages()
     
   } catch (error) {
     console.error('發送失敗', error)
     alert('訊息發送失敗')
-    inputMessage.value = textToSend
+    inputMessage.value = textToSend // 失敗要把字塞回去
   } finally {
     sending.value = false
   }
@@ -124,19 +149,27 @@ const formatTime = (dateStr) => {
 }
 
 onMounted(() => {
-  fetchMessages()
+  // 開啟時自動載入一次
+  // 先檢查有沒有 ID，方便 Debug
+  console.log('ChatPanel Init -> Landlord:', currentUserId, 'Tenant:', tenantId.value)
+  
+  if (currentUserId && tenantId.value) {
+    fetchMessages()
+  } else {
+    console.warn('缺少 ID，無法載入對話')
+    loading.value = false
+  }
 })
 </script>
 
 <style scoped>
-/* 樣式保持不變，新增 icon-btn */
 .view-header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 12px; border-bottom: 1px solid #e5e7eb; margin-bottom: 10px; }
 .header-info { text-align: center; }
 .header-main-text { font-size: 16px; font-weight: 600; color: #2e2622; display: block;}
 .header-sub-text { font-size: 12px; color: #6b7280; }
 .small-btn { border: none; padding: 4px 10px; border-radius: 999px; font-size: 12px; cursor: pointer; background: #e1d4c8; color: #2e2622; }
 .small-btn.outline { background: transparent; border: 1px solid #a18c7b; color: #4a2c21; }
-.icon-btn { font-size: 14px; padding: 4px 8px; } /* 重新整理按鈕 */
+.icon-btn { font-size: 14px; padding: 4px 8px; } 
 
 .chat-container { flex: 1; background: #fefbf7; border-radius: 8px; border: 1px solid #e1d4c8; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
 .loading-text, .empty-text { text-align: center; color: #999; font-size: 13px; margin-top: 20px; }
