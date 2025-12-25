@@ -1,4 +1,4 @@
-const { bucket } = require('../firebase');
+const { bucket } = require('../firebaseConfig');
 const { v4: uuidv4 } = require('uuid'); // 如果沒安裝，請跑 npm install uuid
 
 /**
