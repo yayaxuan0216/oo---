@@ -2,7 +2,7 @@ const { PDFDocument } = require('pdf-lib');
 const fontkit = require('@pdf-lib/fontkit');
 const fs = require('fs');
 const axios = require('axios');
-const { db, bucket } = require('../../firebase');
+const { db, bucket } = require('../../firebaseConfig');
 
 // 取得所有合約
 const getContracts = async (req, res) => {
