@@ -16,8 +16,17 @@ const app = express();
 // ⚠️ 關鍵順序區 (Middleware)
 // ==========================================
 
-// 2. 先設定 CORS
-app.use(cors());
+const corsOptions = {
+  origin: [
+    'http://localhost:5173',          // 本地開發
+    'https://oo-rent.zeabur.app'      // ✨ 線上前端網址 (請確認這跟截圖二的網址一樣)
+  ],
+  methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+  credentials: true, // 允許帶有 cookie 的請求
+  optionsSuccessStatus: 204
+};
+
+app.use(cors(corsOptions));
 
 // 3. ✨ 最重要：Body Parser 設定必須在「路由」之前！
 //    如果不寫在這裡，或者寫在路由下面，就會失效。
