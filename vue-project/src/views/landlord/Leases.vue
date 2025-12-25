@@ -13,6 +13,7 @@
     </div>
 
     <div v-if="loading" class="loading-state">
+      <div class="spinner"></div>
       資料讀取中...
     </div>
 
@@ -52,7 +53,7 @@
             </a>
 
             <button 
-              v-if="lease.status === 'approved'"
+              v-if="lease.status === 'approved' || lease.status === 'created'"
               class="text-btn-upload"
               @click="triggerUpload(lease)"
             >
@@ -77,6 +78,10 @@
           <button v-if="lease.status === 'completed'" class="small-btn outline success" disabled>
             ✓ 已完成
           </button>
+          
+          <button v-if="lease.status === 'landlord_signed'" class="small-btn outline success" disabled>
+             ✓ 已簽署
+          </button>
 
           <button class="small-btn danger" @click="deleteLease(lease.id)">
             刪除
@@ -98,7 +103,7 @@
               {{ rental.title }} ({{ rental.roomType || '套房' }})
             </option>
           </select>
-          <p v-if="rentalOptions.length === 0" class="error-text">
+          <p v-if="rentalOptions.length === 0 && !loading" class="error-text">
             查無上架房源，請先至「租件管理」新增。
           </p>
         </div>
@@ -134,9 +139,6 @@
         <div class="form-group">
           <label>租期 (月數)</label>
           <input type="number" v-model="tempLeaseForm.months" placeholder="預設 12 個月">
-          <p style="font-size: 12px; color: #666; margin-top: 4px;">
-            系統將自動推算起訖日期填入合約
-          </p>
         </div>
 
         <div class="form-group">
@@ -160,7 +162,9 @@
 
         <div class="modal-actions">
           <button class="small-btn outline" @click="closeAddModal">取消</button>
-          <button class="small-btn primary" @click="confirmAddLease">確定建立</button>
+          <button class="small-btn primary" @click="confirmAddLease" :disabled="submitting">
+            {{ submitting ? '處理中...' : '確定建立' }}
+          </button>
         </div>
       </div>
     </div>
@@ -205,6 +209,7 @@ import { VueSignaturePad } from 'vue-signature-pad'
 
 const leases = ref([])
 const loading = ref(false)
+const submitting = ref(false)
 const rentalOptions = ref([]) 
 const tenantOptions = ref([]) 
 const selectedRentalId = ref('')
@@ -234,18 +239,35 @@ onMounted(() => {
   fetchRentals()
 })
 
+// ✅ 修正後的取得合約 (支援過濾)
 const fetchLeases = async () => {
   try {
     loading.value = true
-    const res = await api.get('/api/contracts')
-    leases.value = res.data.map(doc => ({
+    
+    // 取得當前使用者 ID
+    const userStr = localStorage.getItem('currentUser')
+    const user = userStr ? JSON.parse(userStr) : null
+    
+    if (!user || !user.id) {
+       console.warn('使用者未登入，無法讀取合約')
+       return
+    }
+
+    // 呼叫後端並帶上 ID 參數
+    const res = await api.get('/api/contracts', {
+      params: { landlordId: user.id }
+    })
+
+    const dataList = Array.isArray(res.data) ? res.data : (res.data.data || [])
+    
+    leases.value = dataList.map(doc => ({
       id: doc.id,
       rentalTitle: doc.rentalTitle || `房源 ${doc.roomId || ''}`,
       tenantName: doc.tenantName || '未填寫',
       period: `${doc.periodStart || '?'} ~ ${doc.periodEnd || '?'}`,
       status: doc.status,
       pdfUrl: doc.pdfUrl,
-      isActive: doc.status === 'completed',
+      isActive: doc.status === 'completed' || doc.status === 'landlord_signed',
       statusText: mapStatusText(doc.status),
       statusDisplay: mapStatusDisplay(doc.status)
     }))
@@ -260,10 +282,14 @@ const fetchRentals = async () => {
   const userStr = localStorage.getItem('currentUser')
   if (!userStr) return
   const user = JSON.parse(userStr)
+  
   try {
     const response = await api.get(`/api/rentals/list?landlordId=${user.id}`)
-    const json = await response.json()
-    if (json.success) rentalOptions.value = json.data
+    if (response.data && response.data.success) {
+      rentalOptions.value = response.data.data
+    } else if (Array.isArray(response.data)) {
+      rentalOptions.value = response.data
+    }
   } catch (e) {
     console.error("房源讀取失敗:", e)
   }
@@ -315,6 +341,13 @@ const openAddModal = () => {
 }
 const closeAddModal = () => { showAddModal.value = false }
 
+const getLocalDateString = (date) => {
+    const offset = date.getTimezoneOffset()
+    const localDate = new Date(date.getTime() - (offset * 60 * 1000))
+    return localDate.toISOString().split('T')[0]
+}
+
+// ✅ 修正後的建立租約 (寫入 landlordId)
 const confirmAddLease = async () => {
   const { rentalTitle, tenantName, price, months, address, otherTerms, depositMonths, depositFee } = tempLeaseForm.value
 
@@ -330,15 +363,18 @@ const confirmAddLease = async () => {
      if(!confirm('注意：目前為手動輸入模式，未綁定房客帳號，房客可能無法線上簽約。\n確定要繼續嗎？')) return
   }
 
+  submitting.value = true
+
   const userStr = localStorage.getItem('currentUser')
   const user = userStr ? JSON.parse(userStr) : {}
   const myName = user.name || '房東'
+  const myId = user.id // 取得房東 ID
 
   const today = new Date()
-  const startDate = today.toISOString().split('T')[0]
+  const startDate = getLocalDateString(today)
   const endDateObj = new Date(today)
   endDateObj.setMonth(today.getMonth() + parseInt(months))
-  const endDate = endDateObj.toISOString().split('T')[0]
+  const endDate = getLocalDateString(endDateObj)
 
   const payload = {
     roomId: rentalTitle,
@@ -353,7 +389,8 @@ const confirmAddLease = async () => {
     address: address || '未填寫地址',
     otherTerms: otherTerms || '',
     status: 'approved',
-    landlordName: myName 
+    landlordName: myName,
+    landlordId: myId // ✅ 關鍵修正：將合約歸屬於這個 ID
   }
 
   try {
@@ -362,10 +399,12 @@ const confirmAddLease = async () => {
     alert("租約建立成功！正在為您開啟合約 PDF...")
     if (pdfUrl) window.open(pdfUrl, '_blank')
     closeAddModal()
-    fetchLeases()
+    fetchLeases() // 重新整理列表
   } catch (error) {
     console.error(error)
-    alert("建立失敗，請檢查後端連線")
+    alert("建立失敗: " + (error.response?.data?.error || error.message))
+  } finally {
+    submitting.value = false
   }
 }
 
@@ -419,6 +458,9 @@ const confirmSignature = async () => {
   const { isEmpty, data } = signaturePad.value.saveSignature()
   if (isEmpty) return alert('請先簽名！')
   try {
+    if(submitting.value) return;
+    submitting.value = true;
+    
     alert("處理中...")
     await api.put(`/api/contracts/${currentLeaseId.value}/landlord-sign`, {
       signatureImage: data
@@ -429,25 +471,42 @@ const confirmSignature = async () => {
   } catch (error) {
     console.error(error)
     alert("簽署失敗")
+  } finally {
+    submitting.value = false;
   }
 }
 
 const deleteLease = async (id) => {
-  if (!confirm('確定要刪除此租約？')) return
-  leases.value = leases.value.filter(l => l.id !== id)
+  if (!confirm('確定要刪除此租約？這將無法復原。')) return
+  
+  try {
+    await api.delete(`/api/contracts/${id}`)
+    leases.value = leases.value.filter(l => l.id !== id)
+    alert("刪除成功")
+  } catch (error) {
+    console.error("刪除失敗", error)
+    alert("刪除失敗，請稍後再試")
+  }
 }
 
 const mapStatusText = (status) => {
-  const map = { 'approved': '處理中', 'tenant_signed': '待簽核', 'completed': '有效中' }
+  const map = { 
+    'approved': '處理中', 
+    'tenant_signed': '待簽核', 
+    'landlord_signed': '有效中',
+    'completed': '有效中' 
+  }
   return map[status] || '草稿'
 }
 
 const mapStatusDisplay = (status) => {
   const map = {
+    'created': '合約建立，等待確認',
     'applied': '房客申請中',
     'approved': '等待房客簽約',
     'tenant_signed': '等待房東簽署',
-    'completed': '合約已完成'
+    'landlord_signed': '雙方簽署完成',
+    'completed': '合約已歸檔'
   }
   return map[status] || status
 }
@@ -463,7 +522,10 @@ const mapStatusDisplay = (status) => {
 .card-list { display: flex; flex-direction: column; gap: 15px; flex: 1; }
 .empty-state { text-align: center; padding: 40px; color: #9ca3af; font-size: 16px; }
 .empty-icon { font-size: 40px; display: block; margin-bottom: 10px; }
-.loading-state { text-align: center; padding: 40px; color: #6b7280; }
+.loading-state { text-align: center; padding: 40px; color: #6b7280; display: flex; flex-direction: column; align-items: center; gap: 10px;}
+.spinner { width: 30px; height: 30px; border: 3px solid #e1d4c8; border-top-color: #4a2c21; border-radius: 50%; animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
 .card { padding: 16px 20px; border-radius: 12px; background: white; border: 1px solid #e1d4c8; box-shadow: 0 2px 8px rgba(46, 38, 34, 0.05); }
 .card-header { display: flex; justify-content: space-between; }
 .card-title { font-size: 18px; font-weight: 600; color: #2e2622; }
@@ -475,8 +537,9 @@ const mapStatusDisplay = (status) => {
 .badge-pending { background: #fef3c7; color: #92400e; }
 .card-actions { margin-top: 15px; display: flex; gap: 8px; justify-content: flex-end; }
 .small-btn { padding: 6px 12px; border-radius: 6px; font-size: 13px; cursor: pointer; border: 1px solid transparent; transition: 0.2s; }
+.small-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .small-btn.primary { background: #a18c7b; color: white; }
-.small-btn.primary:hover { background: #8b7362; }
+.small-btn.primary:hover:not(:disabled) { background: #8b7362; }
 .small-btn.outline { background: white; border-color: #d1d5db; color: #374151; }
 .small-btn.success { background: #ecfdf5; color: #047857; border-color: #a7f3d0; }
 .small-btn.danger { background: #fee2e2; color: #991b1b; }

@@ -1,9 +1,10 @@
 import axios from 'axios';
 
-// 建立一個 axios 的實例 (Instance)
 const api = axios.create({
-  // 這裡就是魔法！它會自動讀取我們剛剛設定的變數
-  baseURL: import.meta.env.VITE_API_URL, 
+  // 👇 改成空字串 (Empty String)
+  // 因為你的 Leases.vue 裡面已經寫了 '/api/contracts'，這裡不需要再加前綴了
+  baseURL: '', 
+  
   headers: {
     'Content-Type': 'application/json',
   },

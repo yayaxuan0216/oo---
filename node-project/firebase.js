@@ -1,26 +1,34 @@
-var admin = require("firebase-admin");
-// ★ 引入 getFirestore 用來抓取指定資料庫
-var { getFirestore } = require("firebase-admin/firestore"); 
+// firebase.js
+require('dotenv').config(); // 載入環境變數
+const admin = require('firebase-admin');
 
-var serviceAccount = require("./serviceAccountKey.json");
+// 1. 處理私鑰的換行符號 (關鍵步驟，防止 .env 讀取錯誤)
+const privateKey = process.env.FIREBASE_PRIVATE_KEY
+  ? process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n')
+  : undefined;
 
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
-  storageBucket: "oo-project-dedbd.firebasestorage.app"
+// 2. 初始化 Firebase (防止重複初始化)
+if (!admin.apps.length) {
+  admin.initializeApp({
+    credential: admin.credential.cert({
+      projectId: process.env.FIREBASE_PROJECT_ID,
+      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+      privateKey: privateKey
+    }),
+    // ⚠️ 配合您同學的設定，將 Bucket 寫死在這裡
+    storageBucket: "oo-project-dedbd.firebasestorage.app"
+  });
+}
+
+// 3. 初始化 Firestore
+const db = admin.firestore();
+
+// ⚠️ 這是剛才除錯的關鍵：指定資料庫名稱為 'oo-base'
+db.settings({
+    databaseId: 'oo-base'
 });
 
-// ★ 關鍵修正：直接在這裡指定資料庫名稱 'oo-base'
-const db = getFirestore('oo-base');
 const bucket = admin.storage().bucket();
-const auth = admin.auth();
 
-// 測試連線 (這行會告訴我們到底連去哪了)
-db.listCollections()
-  .then(() => console.log("✅ 成功連線到資料庫：oo-base"))
-  .catch(err => {
-    console.error("❌ 連線失敗！請檢查 serviceAccountKey.json");
-    console.error("錯誤代碼:", err.code); // 應該是 5 NOT_FOUND
-    console.error("錯誤訊息:", err.message);
-  });
-
-module.exports = { admin, db, bucket, auth };
+// 4. 匯出 db, bucket 和 admin 供其他檔案使用
+module.exports = { admin, db, bucket };

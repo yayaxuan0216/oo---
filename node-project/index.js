@@ -3,6 +3,7 @@ const cors = require('cors');
 const bodyParser = require('body-parser'); // 1. 確保有引入這行
 const authRoutes = require('./routes/auth'); 
 const rentalRoutes = require('./routes/rentals');
+const tenantsRoutes = require('./routes/tenants');
 const userRoutes = require('./routes/user');
 const appointmentRoutes = require('./routes/appointments');
 const contractsRoutes = require('./routes/contracts');
@@ -24,6 +25,7 @@ app.use(bodyParser.urlencoded({ limit: '10mb', extended: true }));
 // ==========================================
 // 4. 最後才是載入路由
 // ==========================================
+app.use('/api/room-tenants', tenantsRoutes);
 app.use('/api', authRoutes);
 app.use('/api/rentals', rentalRoutes);
 app.use('/api/user', userRoutes);

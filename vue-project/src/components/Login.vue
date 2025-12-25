@@ -16,12 +16,30 @@
 
         <div class="form-group">
           <label for="password">密碼</label>
-          <input
-            id="password"
-            v-model="password"
-            type="password"
-            placeholder="請輸入密碼"
-          />
+          <div class="password-wrapper">
+            <input
+              id="password"
+              v-model="password"
+              :type="showPassword ? 'text' : 'password'"
+              placeholder="請輸入密碼"
+            />
+            
+            <button 
+              type="button" 
+              class="eye-btn" 
+              @click="showPassword = !showPassword"
+              tabindex="-1"
+            >
+              <svg v-if="showPassword" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                <circle cx="12" cy="12" r="3"></circle>
+              </svg>
+              <svg v-else xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                <line x1="1" y1="1" x2="23" y2="23"></line>
+              </svg>
+            </button>
+          </div>
         </div>
 
         <div class="form-group">
@@ -57,14 +75,15 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import api from '@/utils/api'
+import api from '@/utils/api' // 假設你有這個 utils
+
 const router = useRouter()
 
 const username = ref('')
 const password = ref('')
 const loginRole = ref('')
+const showPassword = ref(false) // ✨ 新增：控制密碼顯示狀態
 
-// 修改後的登入邏輯
 const handleLogin = async () => {
   if (!username.value || !password.value) {
     alert('請輸入帳號與密碼')
@@ -77,7 +96,6 @@ const handleLogin = async () => {
   }
   
   try {
-    // 1. 呼叫後端 API
     const response = await api.post('/api/login', {
         username: username.value,
         password: password.value,
@@ -87,13 +105,9 @@ const handleLogin = async () => {
     const data = response.data
 
     if (data.success) {
-      // 2. ✨ 關鍵步驟：把使用者資料存入 localStorage
-      // 這樣瀏覽器關掉重開，資料還會在
       localStorage.setItem('currentUser', JSON.stringify(data.user))
-
       alert(`歡迎回來，${data.user.name}！`)
 
-      // 3. 根據身分跳轉
       if (data.user.role === 'tenant') {
         router.push('/TenantHome')
       } else {
@@ -109,19 +123,16 @@ const handleLogin = async () => {
   }
 }
 
-// ... 其他函式 (goToForgotPassword, goToRegChoose) 保持不變
 const goToForgotPassword = () => router.push('/ForgotPassword')
 const goToRegChoose = () => router.push('/RegChoose')
 </script>
 
 <style scoped>
-/* 樣式直接搬過來即可 */
 .page {
   min-height: 100vh;
   display: flex;
   justify-content: center;
   align-items: center;
-  /* background: #f2e6dc; (如果 body 已經設了，這裡可以拿掉，或是保留確保覆蓋) */
 }
 
 .login-card {
@@ -159,18 +170,51 @@ label {
 
 input,
 select {
+  width: 100%; /* 確保滿版 */
   padding: 8px 10px;
   border-radius: 8px;
   border: 1px solid #d1d5db;
   font-size: 16px;
   outline: none;
-  background-color: white; /* 確保輸入框背景是白的 */
+  background-color: white;
+  box-sizing: border-box; /* 確保 padding 不會撐大寬度 */
 }
 
 input:focus,
 select:focus {
   border-color: #a18c7b;
   box-shadow: 0 0 0 1px rgba(161, 140, 123, 0.4);
+}
+
+/* 👇 新增樣式：密碼輸入框 wrapper */
+.password-wrapper {
+  position: relative; /* 讓內部絕對定位的按鈕以此為基準 */
+  display: flex;
+  align-items: center;
+}
+
+/* 為了不讓文字被眼睛擋住，輸入框右邊要留點空間 */
+.password-wrapper input {
+  padding-right: 40px; 
+}
+
+/* 👇 新增樣式：小眼睛按鈕 */
+.eye-btn {
+  position: absolute;
+  right: 10px;        /* 靠右 */
+  top: 50%;
+  transform: translateY(-50%); /* 垂直置中 */
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #9ca3af;     /* 灰色圖示 */
+  display: flex;
+  align-items: center;
+  padding: 0;
+}
+
+.eye-btn:hover {
+  color: #4a2c21;     /* hover 時變深色 */
 }
 
 .btn-primary {
