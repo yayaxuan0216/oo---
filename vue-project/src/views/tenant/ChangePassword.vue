@@ -48,7 +48,7 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-
+import api from '@/utils/api'
 const router = useRouter()
 
 const form = ref({
