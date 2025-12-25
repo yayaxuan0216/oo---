@@ -5,6 +5,7 @@ const authRoutes = require('./routes/auth');
 const rentalRoutes = require('./routes/rentals');
 const userRoutes = require('./routes/user');
 const appointmentRoutes = require('./routes/appointments');
+const contractsRoutes = require('./routes/contracts');
 
 const app = express();
 
@@ -27,6 +28,7 @@ app.use('/api', authRoutes);
 app.use('/api/rentals', rentalRoutes);
 app.use('/api/user', userRoutes);
 app.use('/api/appointments', appointmentRoutes);
+app.use('/api/contracts', contractsRoutes);
 
 const port = process.env.PORT || 3000;
 
