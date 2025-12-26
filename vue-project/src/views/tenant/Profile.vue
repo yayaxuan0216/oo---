@@ -44,7 +44,7 @@
 
       <div class="form-section">
         <h3 class="sub-title">我的收藏</h3>
-        <p class="hint">您目前收藏了 {{ favoriteCount }} 個房源。</p>
+
         <button class="favorite-link-btn" @click="goToFavorites">
           ❤️ 前往查看我的收藏清單
         </button>
