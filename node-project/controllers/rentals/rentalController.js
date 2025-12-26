@@ -1,12 +1,11 @@
-// node-project/controllers/rentals/rentalController.js
-const { db } = require('../../firebaseConfig'); // ⚠️ 注意路徑：往上兩層才找得到 firebaseConfig
+const { db } = require('../../firebaseConfig');
 
 // 取得單一房源詳情 (並計算收藏人數)
 const getRentalById = async (req, res) => {
   try {
     const rentalId = req.params.id;
 
-    // 1. 排除非 ID 的關鍵字 (防止誤判)
+    // 1. 排除非 ID 的關鍵字
     if (['list', 'public', 'amenities', 'add', 'update', 'delete'].includes(rentalId)) return;
 
     // 2. 從 houses 集合抓取房源
@@ -16,16 +15,12 @@ const getRentalById = async (req, res) => {
       return res.status(404).json({ success: false, error: "找無此房源" });
     }
 
-    // ==========================================
-    // ✨✨✨ 這裡就是我們要加的新功能 ✨✨✨
-    // ==========================================
+    // ===== 計算收藏人數 =====
     const favSnapshot = await db.collection('favorites')
       .where('rentalId', '==', rentalId)
       .get();
       
     const favoriteCount = favSnapshot.size; // 取得收藏總數
-    // ==========================================
-
     // 3. 回傳資料 (包含 favoriteCount)
     res.json({ 
       success: true, 

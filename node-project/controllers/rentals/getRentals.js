@@ -4,7 +4,7 @@ const getRentals = async (req, res) => {
   try {
     const { landlordId } = req.query;
 
-    // 1. 基本檢查：沒給 ID 就不幫忙找
+    // 1. 沒給 ID 就不幫忙找
     if (!landlordId) {
       return res.status(400).json({ message: '未提供房東 ID' });
     }
@@ -26,7 +26,7 @@ const getRentals = async (req, res) => {
 
   } catch (error) {
     console.error('取得列表失敗:', error);
-    // 如果是因為缺少索引 (Index) 導致失敗，終端機會給一個網址，點進去建立即可
+    // 如果是因為缺少索引 (Index) 導致失敗，終端機會給一個網址，點進去建立
     res.status(500).json({ success: false, message: '伺服器錯誤' });
   }
 };

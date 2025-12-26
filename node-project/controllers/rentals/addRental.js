@@ -1,5 +1,3 @@
-
-
 const { db } = require('../../firebaseConfig');
 const uploadImage = require('../../utils/uploadImage');
 const getCoordinates = require('../../utils/geocoding');
@@ -13,8 +11,8 @@ const addRental = async (req, res) => {
     } = req.body;
 
 
-    // ✨✨✨ 新增這段：轉換經緯度 ✨✨✨
-    let coordinates = { lat: 23.705, lng: 120.430 }; // 預設值 (斗六)，以防轉換失敗
+    // 轉換經緯度
+    let coordinates = { lat: 23.705, lng: 120.430 }; // 預設值 (斗六)
     
     if (address) {
       console.log(`正在轉換地址: ${address}...`);
@@ -24,21 +22,19 @@ const addRental = async (req, res) => {
         console.log('轉換成功:', coordinates);
       }
     }
-    // ✨✨✨ 結束 ✨✨✨
 
     const newRental = {
       landlordId,
       title,
       address,
       
-      // ✨ 儲存經緯度到資料庫
+      //儲存經緯度到資料庫
       lat: coordinates.lat,
       lng: coordinates.lng,
 
       type,
       price: Number(price),
       deposit: Number(deposit),
-      // ... (其他欄位保持不變)
       createdAt: new Date().toISOString()
     };
 

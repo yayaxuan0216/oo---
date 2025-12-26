@@ -5,7 +5,6 @@ const getTenantAppointments = async (req, res) => {
     const { id } = req.params; // 房客 ID
     const snapshot = await db.collection('appointments')
       .where('tenantId', '==', id)
-      //.orderBy('createdAt', 'desc')
       .get();
 
     const data = [];

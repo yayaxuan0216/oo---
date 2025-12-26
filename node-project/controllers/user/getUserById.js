@@ -1,10 +1,10 @@
-const { db } = require('../../firebaseConfig'); // 注意路徑：往上兩層找到 firebaseConfig.js
+const { db } = require('../../firebaseConfig'); 
 
 const getUserById = async (req, res) => {
   try {
     const { id } = req.params;
 
-    // 1. 優先搜尋 'landlords' (房東) 集合
+    // 1. 先搜尋 'landlords' (房東) 集合
     let doc = await db.collection('landlords').doc(id).get();
     let isLandlord = true;
 
@@ -30,13 +30,13 @@ const getUserById = async (req, res) => {
         email: data.email,
         phone: data.phone,
         avatar: data.avatar,
-        bio: data.bio || '', // 確保 bio 欄位存在
+        bio: data.bio || '', 
         role: isLandlord ? 'landlord' : 'tenant'
       }
     });
 
   } catch (error) {
-    console.error('取得使用者失敗:', error); // 只保留必要的錯誤 Log
+    console.error('取得使用者失敗:', error); 
     res.status(500).json({ success: false, message: '伺服器錯誤' });
   }
 };

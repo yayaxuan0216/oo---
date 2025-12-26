@@ -1,9 +1,8 @@
-// backend/controllers/rentals/getPublicRentals.js
 const { db } = require('../../firebaseConfig');
 
 const getPublicRentals = async (req, res) => {
   try {
-    // 查詢條件：必須是已發布 (isPublished == true)
+    // 必須是已發布 (isPublished == true)
     // 排序：按時間新到舊
     const snapshot = await db.collection('houses')
       .where('isPublished', '==', true)

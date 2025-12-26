@@ -6,20 +6,20 @@ const login = async (req, res) => {
   try {
     const { username, password, role } = req.body;
 
-    // 1. 判斷要查哪個集合 (假設手機號碼是帳號)
+    // 判斷要查哪個集合 (假設手機號碼是帳號)
     const collectionName = role === 'landlord' ? 'landlords' : 'tenants';
 
-    // 2. 去 Firebase 查詢
+    // 去 Firebase 查詢
     const snapshot = await db.collection(collectionName)
       .where('phone', '==', username)
       .get();
 
-    // 3. 檢查有沒有這個人
+    //檢查有沒有這個人
     if (snapshot.empty) {
       return res.status(401).json({ success: false, message: '帳號不存在或身分錯誤' });
     }
 
-    // 4. 比對密碼
+    // 比對密碼
     let userFound = null;
     let docId = '';
 
@@ -35,9 +35,10 @@ const login = async (req, res) => {
       return res.status(401).json({ success: false, message: '密碼錯誤' });
     }
 
-    // 5. 登入成功
+    // 登入成功
     console.log('登入成功:', userFound.name);
-    
+
+    // 回傳登入狀態與使用者資料
     res.status(200).json({
       success: true,
       message: '登入成功',

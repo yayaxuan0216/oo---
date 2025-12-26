@@ -5,9 +5,7 @@ const path = require('path');
 const axios = require('axios');
 const { db, bucket } = require('../../firebaseConfig');
 
-// ==========================================
-// 🛠️ Helper Functions (輔助工具)
-// ==========================================
+// 輔助工具
 
 // 民國日期轉換工具
 const getROCDateParts = (dateString) => {
@@ -20,7 +18,7 @@ const getROCDateParts = (dateString) => {
   };
 };
 
-// 共用的簽名處理邏輯 (核心功能)
+// 共用的簽名處理
 const processSignature = async (contractId, signatureBase64, position, role) => {
   const docRef = db.collection('contracts').doc(contractId);
   const doc = await docRef.get();
@@ -37,14 +35,14 @@ const processSignature = async (contractId, signatureBase64, position, role) => 
   const pngImageBytes = Buffer.from(signatureBase64.replace(/^data:image\/png;base64,/, ""), 'base64');
   const pngImage = await pdfDoc.embedPng(pngImageBytes);
 
-  // 3. 繪製簽名 (含偵錯與防呆)
+  // 3. 繪製簽名
   const pages = pdfDoc.getPages();
   
-  // 👇👇👇 偵錯訊息開始 👇👇👇
+  //偵錯訊息
   console.log("========================================");
   console.log(`🔥 [偵錯模式] PDF 總頁數: ${pages.length}`);
   
-  // 這裡只宣告一次 pageIndex，不會再報錯了
+  
   let pageIndex = 7; // 預設第 8 頁 (Index 7)
 
   if (pages.length <= 7) {
@@ -55,7 +53,7 @@ const processSignature = async (contractId, signatureBase64, position, role) => 
   console.log(`🎯 [確認] 最終將簽名畫在第 ${pageIndex + 1} 頁 (Index: ${pageIndex})`);
   console.log(`📍 [確認] 座標位置 X: ${position.x}, Y: ${position.y}`);
   console.log("========================================");
-  // 👆👆👆 偵錯訊息結束 👆👆👆
+  // 偵錯訊息結束 
 
   const targetPage = pages[pageIndex];
 
@@ -104,9 +102,7 @@ const processSignature = async (contractId, signatureBase64, position, role) => 
   return url;
 };
 
-// ==========================================
-// 🎮 Controllers (控制器)
-// ==========================================
+//Controllers (控制器)
 
 const getContracts = async (req, res) => {
   try {
@@ -260,7 +256,7 @@ const landlordSign = async (req, res) => {
     const { signatureImage } = req.body;
     if (!signatureImage) return res.status(400).json({ error: "無簽名資料" });
     
-    // 房東簽名座標 (可依偵錯結果調整)
+    // 房東簽名座標
     const url = await processSignature(contractId, signatureImage, { x: 260, y: 525 }, 'landlord');
     
     res.json({ success: true, url });
@@ -275,7 +271,7 @@ const tenantSign = async (req, res) => {
     const { signatureImage } = req.body;
     if (!signatureImage) return res.status(400).json({ error: "無簽名資料" });
 
-    // 房客簽名座標 (可依偵錯結果調整)
+    // 房客簽名座標
     const url = await processSignature(contractId, signatureImage, { x: 260, y: 370 }, 'tenant');
     
     res.json({ success: true, url });

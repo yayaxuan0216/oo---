@@ -1,10 +1,9 @@
 const { db, admin } = require('../../firebaseConfig');
 const uploadImage = require('../../utils/uploadImage');
-const getCoordinates = require('../../utils/geocoding'); // ✨ 1. 引入 Geocoding 工具
-
+const getCoordinates = require('../../utils/geocoding'); 
 const updateRental = async (req, res) => {
   try {
-    // 🔥 強制 Log：確認請求進入
+    // 確認請求進入
     console.log('🔥 [Debug] 後端收到更新請求！標題:', req.body.title);
 
     const { id, images, address, ...otherData } = req.body;
@@ -13,7 +12,7 @@ const updateRental = async (req, res) => {
       return res.status(400).json({ success: false, message: '缺少 ID' });
     }
 
-    // ✨ 2. 先抓取舊資料 (為了比對地址)
+    //先抓取舊資料 (為了比對地址)
     const docRef = db.collection('houses').doc(id);
     const doc = await docRef.get();
 
@@ -23,7 +22,7 @@ const updateRental = async (req, res) => {
     
     const oldData = doc.data();
 
-    // ✨ 3. 處理地址定位 (Geocoding)
+    // 處理地址定位 (Geocoding)
     let geoData = {};
     
     // 印出比對結果
@@ -42,10 +41,9 @@ const updateRental = async (req, res) => {
       console.log('💨 [Debug] 地址沒變，跳過 Google API (省錢模式)');
     }
 
-    // ✨ 4. 處理圖片 (混合了「舊網址」與「新上傳的 Base64」)
+    // 處理圖片 (混合了「舊網址」與「新上傳的 Base64」)
     let imageUrls = [];
     if (images && images.length > 0) {
-      // 使用 Promise.all 平行處理
       imageUrls = await Promise.all(
         images.map(img => {
           // 如果是已經存在的網址 (http開頭)，直接保留，不用上傳
@@ -58,7 +56,7 @@ const updateRental = async (req, res) => {
       );
     }
 
-    // ✨ 5. 組合更新資料
+    // 組合更新資料
     const updateData = {
       ...otherData,
       address: address, // 更新文字地址

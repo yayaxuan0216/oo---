@@ -9,7 +9,6 @@ const getTenants = async (req, res) => {
       return res.status(400).json({ success: false, message: '缺少房東 ID' });
     }
 
-    // ✨ 修改：指向 'tenantsManage' 集合
     const snapshot = await db.collection('tenantsManage')
       .where('landlordId', '==', landlordId)
       .orderBy('createdAt', 'desc') 
@@ -28,10 +27,9 @@ const getTenants = async (req, res) => {
   }
 };
 
-// 2. 新增房客 (CRM 概念，建立聯絡人)
+// 2. 新增房客
 const addTenant = async (req, res) => {
   try {
-    // 1. ✨ 在這裡補上接收 leaseStart, leaseEnd
     const { landlordId, name, phone, rentalId, rentalTitle, uid, leaseStart, leaseEnd } = req.body;
 
     if (!name || !phone) {
@@ -47,7 +45,6 @@ const addTenant = async (req, res) => {
       currentRentalTitle: rentalTitle || '',
       status: rentalId ? 'active' : 'lead',
       
-      // 2. ✨ 在這裡把日期寫入資料庫
       leaseStart: leaseStart || null, 
       leaseEnd: leaseEnd || null,
 
@@ -70,7 +67,6 @@ const updateTenant = async (req, res) => {
     const { id } = req.params;
     const updateData = req.body;
     
-    // ✨ 修改：更新 'tenantsManage' 集合
     await db.collection('tenantsManage').doc(id).update(updateData);
     
     res.json({ success: true, message: '更新成功' });

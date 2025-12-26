@@ -1,4 +1,4 @@
-const { db, admin } = require('../../firebaseConfig'); // 注意路徑：往上兩層找到 firebase.js
+const { db, admin } = require('../../firebaseConfig');
 
 const register = async (req, res) => {
   console.log('收到註冊請求:', req.body);
@@ -6,12 +6,12 @@ const register = async (req, res) => {
   try {
     const { name, phone, address, gender, role, password } = req.body;
 
-    // 1. 基本驗證
+    //基本驗證
     if (!name || !phone || !password || !role) {
       return res.status(400).json({ message: '欄位不完整' });
     }
 
-    // 2. 準備要寫入的資料
+    //準備要寫入的資料
     const newUser = {
       name,
       phone,
@@ -22,16 +22,16 @@ const register = async (req, res) => {
       createdAt: admin.firestore.FieldValue.serverTimestamp()
     };
 
-    // 3. 判斷要存入哪個集合
+    // 判斷要存入哪個集合
     let collectionName = role === 'landlord' ? 'landlords' : 'tenants';
     
     console.log(`準備寫入 Firebase 集合: ${collectionName}`);
 
-    // 4. 寫入資料庫
+    // 寫入資料庫
     const docRef = await db.collection(collectionName).add(newUser);
     console.log(`寫入成功！ID:`, docRef.id);
     
-    // 5. 回傳成功訊息
+    // 回傳成功訊息
     res.status(200).json({ 
       success: true, 
       message: '註冊成功', 

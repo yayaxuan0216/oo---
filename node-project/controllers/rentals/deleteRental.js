@@ -2,7 +2,7 @@ const { db } = require('../../firebaseConfig');
 
 const deleteRental = async (req, res) => {
   try {
-    const { id } = req.body; // 或 req.params
+    const { id } = req.body;
     await db.collection('houses').doc(id).delete();
     res.status(200).json({ success: true, message: '刪除成功' });
   } catch (error) {

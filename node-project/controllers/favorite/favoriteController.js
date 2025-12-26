@@ -20,14 +20,12 @@ const getMyFavorites = async (req, res) => {
     }
 
     // 2. 取得所有收藏的 rentalId
-    // 我們同時把 favorite 的文件 ID (docId) 也留著，方便等等做「取消收藏」
     const favMap = favSnapshot.docs.map(doc => ({
       favDocId: doc.id,
       rentalId: doc.data().rentalId
     }));
 
     // 3. 根據 rentalId 去 rentals 集合抓取詳細房源資料
-    // 使用 Promise.all 平行處理多次查詢
     const rentalsPromises = favMap.map(async (item) => {
       console.log(`嘗試抓取房源詳細資料，ID: ${item.rentalId}`);
       const rentalDoc = await db.collection('houses').doc(item.rentalId).get();
@@ -39,13 +37,13 @@ const getMyFavorites = async (req, res) => {
       return {
         id: rentalDoc.id,
         ...rentalDoc.data(),
-        favDocId: item.favDocId // 這是為了讓前端可以刪除這筆收藏
+        favDocId: item.favDocId
       };
     });
 
     const results = await Promise.all(rentalsPromises);
     
-    // 過濾掉 null (已刪除的房源)
+    // 過濾掉已刪除的房源
     const validRentals = results.filter(r => r !== null);
     console.log(`成功找到 ${validRentals.length} 筆有效的收藏租件。`);
     res.json({ success: true, data: validRentals });
@@ -56,7 +54,7 @@ const getMyFavorites = async (req, res) => {
   }
 };
 
-// 移除收藏 (取消收藏)
+// 移除收藏
 const removeFavorite = async (req, res) => {
   try {
     const { favDocId } = req.params;
@@ -99,7 +97,7 @@ const addFavorite = async (req, res) => {
   }
 };
 
-// ✨ 新增：檢查某個房源是否已收藏 (進入詳情頁時用)
+// 檢查某個房源是否已收藏 (進入詳情頁時用)
 const checkFavoriteStatus = async (req, res) => {
   try {
     const { uid, rentalId } = req.query;
@@ -112,7 +110,7 @@ const checkFavoriteStatus = async (req, res) => {
       .get();
 
     if (!snapshot.empty) {
-      // 回傳 true 以及該筆收藏的 ID (方便之後刪除用)
+      // 回傳 true 以及該筆收藏的 ID
       return res.json({ success: true, isFavorite: true, favDocId: snapshot.docs[0].id });
     }
 

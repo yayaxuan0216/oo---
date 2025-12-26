@@ -38,7 +38,7 @@ const getMyLivingInfo = async (req, res) => {
             isPaid,
             amount: rec.totalAmount || 0,
             
-            // ✨ 關鍵修改：只回傳房客的備註 (tenantNote)
+            // 回傳房客的備註 (tenantNote)
             // 將 tenantNote 對應到前端慣用的 'note' 欄位，方便顯示
             note: rec.tenantNote || '' 
           });
@@ -63,14 +63,14 @@ const getMyLivingInfo = async (req, res) => {
   }
 };
 
-// ✨ 2. 新增功能：房客更新自己的備註
+// 房客更新自己的備註
 const updateTenantNote = async (req, res) => {
   try {
     const { uid, month, note } = req.body;
 
     if (!uid || !month) return res.status(400).json({ success: false, message: '參數不足' });
 
-    // 1. 先找到該房客的文件
+    // 1. 先找到房客的文件
     const snapshot = await db.collection('tenantsManage')
       .where('uid', '==', uid)
       .where('status', '==', 'active')
@@ -86,10 +86,10 @@ const updateTenantNote = async (req, res) => {
     
     const currentData = doc.data();
     
-    // 1. 取得目前的 records，如果沒有就初始化空物件
+    // 1. 取得目前的 records
     const records = currentData.records || {};
 
-    // 2. 確保該月份的物件存在 (防止報錯)
+    // 2. 確保該月份的物件存在
     if (!records[month]) {
       records[month] = { 
         rent: false, water: false, electric: false, 
@@ -101,11 +101,10 @@ const updateTenantNote = async (req, res) => {
     records[month].tenantNote = note;
 
     // 4. 將整個 records 物件寫回資料庫
-    // 這樣就不會受到 "2025/12" 裡面斜線的影響了
     await db.collection('tenantsManage').doc(docId).update({
       records: records
     });
-    // 👆👆👆 修改結束 👆👆👆
+
 
     res.json({ success: true, message: '備註已更新' });
 

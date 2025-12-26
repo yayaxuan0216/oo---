@@ -1,4 +1,4 @@
-const { db } = require('../../firebaseConfig'); // 注意路徑：往上兩層找到 firebaseConfig.js
+const { db } = require('../../firebaseConfig');
 
 const getRoomTenants = async (req, res) => {
   try {

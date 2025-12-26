@@ -1,10 +1,9 @@
-const { db } = require('../../firebaseConfig'); // 注意路徑：往上兩層找到 firebaseConfig.js
+const { db } = require('../../firebaseConfig');
 
 const updateProfile = async (req, res) => {
-  console.log('收到更新資料請求'); // 這裡可以看 log 確保有收到長長的圖片字串
+  console.log('收到更新資料請求'); 
   
   try {
-    // 1. 多接收 avatar 欄位
     const { userId, role, name, email, avatar } = req.body;
 
     if (!userId || !role) {
@@ -13,18 +12,17 @@ const updateProfile = async (req, res) => {
 
     const collectionName = role === 'landlord' ? 'landlords' : 'tenants';
 
-    // 2. 準備更新物件
     const updateData = {
       name: name,
       email: email || ''
     };
 
-    // ✨ 如果前端有傳圖片過來，才更新圖片欄位
+    // 如果前端有傳圖片過來，才更新圖片欄位
     if (avatar) {
       updateData.avatar = avatar;
     }
 
-    // 3. 更新 Firestore
+    // 更新 Firestore
     await db.collection(collectionName).doc(userId).update(updateData);
 
     console.log('資料與頭貼更新成功');
