@@ -49,9 +49,9 @@
           <router-link to="/LandlordHome/search" class="drawer-item" @click="toggleMenu">
             <span class="icon">🔍</span> 租屋搜尋
           </router-link>
-          <router-link to="/LandlordHome/map" class="drawer-item" @click="toggleMenu">
+          <!-- <router-link to="/LandlordHome/map" class="drawer-item" @click="toggleMenu">
             <span class="icon">🗺️</span> 地圖視覺
-          </router-link>
+          </router-link> -->
           <router-link to="/LandlordHome/profile" class="drawer-item" @click="toggleMenu">
             <span class="icon">👤</span> 個人專區
           </router-link>
