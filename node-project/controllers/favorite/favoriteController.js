@@ -30,7 +30,7 @@ const getMyFavorites = async (req, res) => {
     // 使用 Promise.all 平行處理多次查詢
     const rentalsPromises = favMap.map(async (item) => {
       console.log(`嘗試抓取房源詳細資料，ID: ${item.rentalId}`);
-      const rentalDoc = await db.collection('rentals').doc(item.rentalId).get();
+      const rentalDoc = await db.collection('houses').doc(item.rentalId).get();
       if (!rentalDoc.exists) {
         console.log(`⚠️ 警告：房源 ${item.rentalId} 在 rentals 集合中不存在！`);
         return null;} // 房源可能已被刪除

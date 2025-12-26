@@ -23,7 +23,7 @@
                 </button>
              </div>
              <p class="listing-price">{{ item.price }} 元/月</p>
-             <p class="listing-addr">{{ item.city }}{{ item.district }}</p>
+             <p class="listing-addr">{{ item.address }}</p>
              <div class="listing-footer">
                 <button class="secondary-btn" @click="goToDetail(item.id)">查看詳情</button>
              </div>
