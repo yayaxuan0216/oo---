@@ -88,7 +88,7 @@ const handleRemove = async (item) => {
 }
 
 const goToDetail = (id) => {
-  router.push(`/TenantHome/rentals/${id}`)
+  router.push(`/TenantHome/rental/${id}`)
 }
 
 onMounted(() => {

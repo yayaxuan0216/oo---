@@ -100,6 +100,7 @@
         <button class="icon-btn" @click="toggleFavorite">
           <span class="icon">{{ isFavorite ? '❤️' : '🤍' }}</span>
           <span class="text">{{ isFavorite ? '已收藏' : '收藏' }}</span>
+          <span class="fav-count" v-if="rental.favoriteCount > 0">{{ rental.favoriteCount }}</span>
         </button>
         
         <button class="icon-btn" @click="openLandlordModal">
@@ -246,6 +247,7 @@ const toggleFavorite = async () => {
         await api.delete(`/api/favorites/${favDocId.value}`)
         isFavorite.value = false
         favDocId.value = null
+        if (rental.value.favoriteCount > 0) rental.value.favoriteCount--
       }
     } else {
       // 🔴 情況 B: 尚未收藏 -> 執行新增
@@ -256,6 +258,7 @@ const toggleFavorite = async () => {
       if (res.data.success) {
         isFavorite.value = true
         favDocId.value = res.data.favDocId // 記住新產生的 ID
+        rental.value.favoriteCount = (rental.value.favoriteCount || 0) + 1
       }
     }
   } catch (e) {
@@ -458,5 +461,23 @@ const contactLandlord = () => {
 /* 編輯模式下圖片不要太壓迫 */
 .image-gallery.edit-mode .gallery-img {
   object-fit: cover;
+}
+.icon-btn {
+  position: relative; /* 讓計數器可以絕對定位 */
+}
+
+.fav-count {
+  position: absolute;
+  top: -2px;
+  right: -5px;
+  background: #ff4757;
+  color: white;
+  font-size: 10px;
+  padding: 1px 5px;
+  border-radius: 10px;
+  font-weight: bold;
+  min-width: 14px;
+  text-align: center;
+  box-shadow: 0 2px 4px rgba(255, 71, 87, 0.3);
 }
 </style>
