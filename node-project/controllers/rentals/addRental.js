@@ -1,6 +1,6 @@
 const { db } = require('../../firebaseConfig');
-const uploadImage = require('../../utils/uploadImage'); // 引入上傳工具
-const getCoordinates = require('../../utils/geocoding'); // 引入地圖工具
+const uploadImage = require('../../utils/uploadImage'); // 務必確認路徑正確
+const getCoordinates = require('../../utils/geocoding'); // 務必確認路徑正確
 
 const addRental = async (req, res) => {
   try {
@@ -11,92 +11,87 @@ const addRental = async (req, res) => {
       description, images, isPublished 
     } = req.body;
 
-    console.log(`📝 收到新增請求：${title}`);
+    console.log(`📝 收到新增請求，標題: ${title}`);
 
     // ==========================================
-    // 🛠️ 修正 1：處理圖片 (將 Base64 轉為 Storage URL)
+    // 步驟 A：處理圖片 (關鍵！防止資料庫爆量)
     // ==========================================
-    let imageUrls = []; // 準備一個陣列來存「網址」
-
-    // 如果前端有傳圖片陣列過來
+    let imageUrls = []; 
+    
+    // 如果有傳圖片 (Base64)，就上傳轉成網址
     if (images && Array.isArray(images) && images.length > 0) {
-      console.log(`📸 正在上傳 ${images.length} 張圖片到 Storage...`);
-      
+      console.log(`📸 正在上傳 ${images.length} 張圖片...`);
       try {
-        // 使用 Promise.all 平行處理，把 Base64 全部轉成 Storage 網址
         imageUrls = await Promise.all(
-          images.map(async (base64String) => {
-            return await uploadImage(base64String);
-          })
+          images.map(base64 => uploadImage(base64))
         );
-        console.log('✅ 圖片上傳完成');
-      } catch (imgError) {
-        console.error('❌ 圖片上傳失敗，將跳過圖片:', imgError);
-        // 這裡選擇不中斷程式，只是圖片會是空的，看您需求決定是否要 throw error
+        console.log('✅ 圖片上傳成功');
+      } catch (e) {
+        console.error('❌ 圖片上傳發生錯誤 (將略過圖片):', e.message);
       }
     }
 
     // ==========================================
-    // 🛠️ 修正 2：處理座標 (防止 undefined)
+    // 步驟 B：處理座標 (關鍵！防止欄位消失)
     // ==========================================
-    let finalLat = 23.705; // 預設值 (斗六)
+    // 預設給一個值，確保資料庫欄位一定會存在
+    let finalLat = 23.705; 
     let finalLng = 120.430;
-    
+
     if (address) {
-      console.log(`🗺️ 正在轉換地址: ${address}...`);
+      console.log(`🗺️ 正在轉換地址: ${address}`);
       try {
         const coords = await getCoordinates(address);
-        if (coords && coords.lat && coords.lng) {
+        // 嚴格檢查回傳值是否有效
+        if (coords && typeof coords.lat === 'number' && typeof coords.lng === 'number') {
           finalLat = coords.lat;
           finalLng = coords.lng;
-          console.log(`✅ 座標轉換成功: ${finalLat}, ${finalLng}`);
+          console.log(`📍 座標轉換成功: ${finalLat}, ${finalLng}`);
         } else {
-          console.log('⚠️ 查無座標，使用預設值');
+          console.log('⚠️ API 查無座標，將使用預設值');
         }
-      } catch (geoError) {
-        console.error('Geocoding 錯誤:', geoError);
+      } catch (err) {
+        console.error('❌ Geocoding 錯誤 (使用預設值):', err.message);
       }
     }
 
     // ==========================================
-    // 🛠️ 修正 3：補齊所有遺漏的欄位
+    // 步驟 C：組裝資料並寫入 'houses'
     // ==========================================
     const newRental = {
       landlordId,
       title,
       address,
       
-      // 寫入確保有值的座標
+      // ✅ 強制寫入數字，確保欄位不會是 undefined
       lat: Number(finalLat),
       lng: Number(finalLng),
 
-      // 寫入轉換後的「圖片網址」 (絕對不能存 Base64!)
+      // ✅ 存入圖片網址陣列
       images: imageUrls, 
 
-      type,
-      price: Number(price),     
-      deposit: Number(deposit),
-      
-      // 👇 把您原本遺漏的欄位都補回來！
-      floor: Number(floor),     
-      area: Number(area),       
-      rooms: Number(rooms),     
-      amenities: amenities || [], // 確保是陣列
-      description: description || '',
+      type: type || '獨立套房',
+      price: Number(price) || 0,
+      deposit: Number(deposit) || 0,
+      floor: Number(floor) || 1,      // 補上樓層
+      area: Number(area) || 5,        // 補上坪數
+      rooms: Number(rooms) || 1,      // 補上房間數
+      amenities: amenities || [],     // 補上設施
+      description: description || '', // 補上描述
       isPublished: isPublished || false,
-
+      
       createdAt: new Date().toISOString()
     };
 
-    // 寫入資料庫 (建議統一用 rentals，如果您原本資料庫是用 houses 也可以改回 houses)
+    // 🔥 寫入您指定的 'houses' 集合
     const docRef = await db.collection('houses').add(newRental);
 
-    console.log(`🎉 新增成功，ID: ${docRef.id}`);
+    console.log(`🎉 寫入 houses 成功！ID: ${docRef.id}`);
     res.status(200).json({ success: true, message: '新增成功', id: docRef.id });
 
   } catch (error) {
-    console.error('❌ 伺服器新增失敗:', error);
-    res.status(500).json({ success: false, message: error.message || '伺服器錯誤' });
+    console.error('🔥 伺服器錯誤:', error);
+    res.status(500).json({ success: false, message: error.message || '伺服器內部錯誤' });
   }
 };
 
